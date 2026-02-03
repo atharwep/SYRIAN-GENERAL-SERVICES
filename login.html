@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - بوابة الخدمات العامة</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Firebase SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 80px);
+            padding: 2rem;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 40px;
+            padding: 3rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        /* Style for Firebase Recaptcha */
+        #recaptcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">ب</div>
+            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+        </a>
+    </nav>
+
+    <div class="auth-container">
+        <!-- Step 1: Login -->
+        <div id="login-step" class="auth-card step active">
+            <div class="text-center mb-2">
+                <div
+                    style="width: 70px; height: 70px; background: white; border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; color: var(--gold);">
+                    🗝️</div>
+                <h2 style="font-weight: 900; font-size: 1.8rem;">دخول المشتركين</h2>
+            </div>
+            <form id="login-form" style="margin-top: 30px;">
+                <div id="error-msg"
+                    style="display: none; padding: 12px; background: #fee2e2; color: #dc2626; border-radius: 12px; font-size: 0.8rem; font-weight: 800; margin-bottom: 20px; text-align: center;">
+                </div>
+                <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="text" id="phone" class="form-input" placeholder="09xxxxxxxx" required>
+                </div>
+                <div class="form-group">
+                    <label>كلمة المرور</label>
+                    <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <div id="recaptcha-container"></div>
+                <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; padding: 18px;">متابعة
+                    🔒</button>
+            </form>
+            <div class="text-center mt-4">
+                <button onclick="goToReset()"
+                    style="background: none; border: none; color: var(--gold); font-weight: 900; cursor: pointer;">نسيت
+                    كلمة المرور؟</button>
+            </div>
+        </div>
+
+        <!-- Step 2: OTP (Universal) -->
+        <div id="otp-step" class="auth-card step">
+            <div class="text-center mb-2">
+                <div style="font-size: 50px; margin-bottom: 20px;">📱</div>
+                <h2 style="font-weight: 900; font-size: 1.8rem;">تأكيد الهوية</h2>
+                <p style="color: #64748B; font-weight: 700; margin-top: 10px;">يرجى إدخال رمز الأمان المرسل إلى هاتفك
+                </p>
+            </div>
+            <form id="otp-form" style="margin-top: 30px;">
+                <div class="form-group">
+                    <input type="text" id="otp-input" class="form-input text-center" maxlength="6"
+                        style="letter-spacing: 12px; font-size: 1.5rem;" placeholder="000000" required>
+                </div>
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; padding: 18px; background: #16a34a;">تحقق وتكملة ✅</button>
+            </form>
+        </div>
+
+        <!-- Step 3: Password Reset -->
+        <div id="reset-step" class="auth-card step">
+            <div class="text-center mb-2">
+                <div style="font-size: 50px; margin-bottom: 20px;">🔄</div>
+                <h2 style="font-weight: 900; font-size: 1.8rem;">تجديد كلمة المرور</h2>
+                <p style="color: #64748B; font-weight: 700; margin-top: 10px;">أدخل كلمة المرور الجديدة لحسابك</p>
+            </div>
+            <form id="reset-form" style="margin-top: 30px;">
+                <div class="form-group">
+                    <label>كلمة المرور الجديدة</label>
+                    <input type="password" id="new-password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 18px;">حفظ وتغيير 💾</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentFlow = 'LOGIN'; // 'LOGIN' or 'RESET'
+        let targetUserPhone = '';
+        let pendingUser = null;
+
+        function showStep(id) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function goToReset() {
+            const phone = document.getElementById('phone').value;
+            if (!phone) { alert('يرجى إدخال رقم الهاتف أولاً'); return; }
+            const user = Store.getUsers().find(u => u.phone === phone);
+            if (!user) { alert('رقم الهاتف غير مسجل'); return; }
+
+            targetUserPhone = phone;
+            currentFlow = 'RESET';
+
+            const btn = document.getElementById('login-btn');
+            btn.innerText = 'جاري إرسال الرمز...';
+            btn.disabled = true;
+
+            const res = await Auth.sendOTP(phone, 'recaptcha-container');
+            if (res.success) {
+                showStep('otp-step');
+            } else {
+                alert(res.message);
+                btn.disabled = false;
+                btn.innerText = 'متابعة 🔒';
+            }
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const res = Auth.login(phone, password);
+
+            if (res.success) {
+                pendingUser = res.user;
+                targetUserPhone = phone;
+                currentFlow = 'LOGIN';
+
+                const btn = document.getElementById('login-btn');
+                btn.innerText = 'جاري إرسال الرمز...';
+                btn.disabled = true;
+
+                const otpRes = await Auth.sendOTP(phone, 'recaptcha-container');
+                if (otpRes.success) {
+                    showStep('otp-step');
+                } else {
+                    alert(otpRes.message);
+                    btn.disabled = false;
+                    btn.innerText = 'متابعة 🔒';
+                }
+            } else {
+                const err = document.getElementById('error-msg');
+                err.style.display = 'block';
+                err.innerText = res.message;
+            }
+        });
+
+        document.getElementById('otp-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const code = document.getElementById('otp-input').value;
+            const verifyRes = await Auth.verifyOTP(code);
+
+            if (verifyRes.success) {
+                if (currentFlow === 'LOGIN') {
+                    Auth.finalizeLogin(pendingUser);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showStep('reset-step');
+                }
+            } else {
+                alert(verifyRes.message || 'رمز التأكيد غير صحيح');
+            }
+        });
+
+        document.getElementById('reset-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const pass = document.getElementById('new-password').value;
+            if (Auth.resetPassword(targetUserPhone, pass)) {
+                alert('تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.');
+                location.reload();
+            }
+        });
+    </script>
+</body>
+
+</html>

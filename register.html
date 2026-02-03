@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب - بوابة الخدمات العامة</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 40px;
+            padding: 3rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">ب</div>
+            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+        </a>
+    </nav>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="text-center mb-2">
+                <div
+                    style="width: 70px; height: 70px; background: white; border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; box-shadow: 0 10px 20px rgba(197, 160, 33, 0.2); color: var(--gold);">
+                    ✨</div>
+                <h2 style="font-weight: 900; font-size: 2rem;">انضم إلينا</h2>
+                <p style="color: #64748B; font-weight: 700; font-size: 0.9rem; margin-top: 10px;">باشر تجربتك الملكية
+                    بإنشاء حساب جديد</p>
+            </div>
+
+            <form id="register-form" style="margin-top: 40px;">
+                <div class="form-group">
+                    <label>الاسم الكامل</label>
+                    <input type="text" id="name" class="form-input" placeholder="مثلاً: محمد أحمد" required>
+                </div>
+
+                <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="text" id="phone" class="form-input" placeholder="093xxxxxxx" required>
+                </div>
+
+                <div class="form-group">
+                    <label>كلمة المرور</label>
+                    <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                </div>
+
+                <div style="margin-bottom: 2rem; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" required id="terms">
+                    <label for="terms" style="margin: 0; font-size: 12px; font-weight: 700; color: #64748B;">أوافق على
+                        <a href="#" style="color: var(--gold);">شروط الخدمة</a> وسياسة الخصوصية</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; padding: 18px; border-radius: 20px; font-size: 1.1rem;">إنشاء الحساب
+                    الآن</button>
+            </form>
+
+            <div class="text-center mt-4">
+                <p style="color: #64748B; font-weight: 700; font-size: 0.9rem;">لديك حساب بالفعل؟ <a href="login.html"
+                        style="color: var(--gold); text-decoration: none; font-weight: 900;">سجل دخولك</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.getElementById('register-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            Auth.register(name, phone, password);
+            window.location.href = 'dashboard.html';
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المحفظة الرقمية - بوابة الخدمات العامة</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .balance-hero {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            padding: 50px;
+            border-radius: 40px;
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-hero::after {
+            content: "⭐️";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 150px;
+            opacity: 0.05;
+        }
+
+        .transaction-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">ب</div>
+            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+        </a>
+        <div id="nav-right"></div>
+    </nav>
+
+    <div class="container" style="max-width: 900px; padding-top: 40px;">
+        <div class="balance-hero">
+            <p style="font-weight: 800; font-size: 1rem; opacity: 0.8; margin-bottom: 15px;">رصيد النقاط الملكية</p>
+            <h1 id="wallet-balance"
+                style="font-size: 4.5rem; font-weight: 950; margin-bottom: 25px; color: var(--gold);">0</h1>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="topUp()" class="btn btn-primary" style="padding: 15px 40px; border-radius: 20px;">شحن
+                    نقاط</button>
+                <button class="btn"
+                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">تحويل
+                    نقاط</button>
+            </div>
+        </div>
+
+        <div class="grid grid-2">
+            <div class="card">
+                <h3 style="font-weight: 900; margin-bottom: 25px;">استبدال النقاط</h3>
+                <div class="grid grid-2" style="gap: 15px;">
+                    <div
+                        style="text-align: center; padding: 20px; background: #f0fdf4; border-radius: 20px; border: 1px solid #dcfce7;">
+                        <p style="font-size: 0.7rem; font-weight: 800; color: #16a34a; margin-bottom: 5px;">قيمة النقطة
+                        </p>
+                        <h4 style="font-weight: 900;">1,000 ل.س</h4>
+                    </div>
+                    <div
+                        style="text-align: center; padding: 20px; background: #eff6ff; border-radius: 20px; border: 1px solid #dbeafe;">
+                        <p style="font-size: 0.7rem; font-weight: 800; color: #2563eb; margin-bottom: 5px;">الحد الأدنى
+                        </p>
+                        <h4 style="font-weight: 900;">10 نقاط</h4>
+                    </div>
+                </div>
+                <div
+                    style="margin-top: 25px; padding: 15px; background: #F8FAFC; border-radius: 15px; font-size: 0.8rem; font-weight: 700; color: #64748B;">
+                    💡 يمكنك استخدام النقاط لدفع تكاليف الأطباء، رحلات التاكسي، أو حتى استبدالها نقداً عبر الوكلاء
+                    المعتمدين.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="font-weight: 900; margin-bottom: 25px;">سجل النقاط</h3>
+                <div id="tx-content">
+                    <!-- Dynamic Transactions -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        function renderWallet() {
+            if (!Store.user) return;
+            document.getElementById('wallet-balance').innerText = Store.user.balance.toLocaleString();
+
+            const txs = Store.getData('transactions');
+            const container = document.getElementById('tx-content');
+
+            if (txs.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 40px 0; opacity: 0.4;">
+                                        <p style="font-weight: 800;">لا توجد عمليات نقاط حالياً</p>
+                                      </div>`;
+            } else {
+                container.innerHTML = '';
+                txs.forEach(tx => {
+                    const isDebit = tx.amount > 0;
+                    container.innerHTML += `
+                        <div class="transaction-card">
+                            <div>
+                                <p style="font-weight: 900; font-size: 0.85rem;">${tx.title}</p>
+                                <p style="font-size: 0.7rem; color: #64748B; font-weight: 700;">${tx.date}</p>
+                            </div>
+                            <p style="font-weight: 950; color: ${isDebit ? '#dc2626' : '#16a34a'};">
+                                ${isDebit ? '-' : '+'}${Math.abs(tx.amount)}
+                            </p>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function topUp() {
+            const amount = prompt("أدخل عدد النقاط التي تريد شحنها (لأغراض التجربة):", "100");
+            if (amount && !isNaN(amount)) {
+                Store.addPoints(parseInt(amount));
+                renderWallet();
+                UI.updateNavbar();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderWallet);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الوكلاء - شحن وسحب النقاط</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">ب</div>
+            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+        </a>
+        <div id="nav-right"></div>
+    </nav>
+
+    <div class="container" style="padding-top: 50px;">
+        <div class="text-center mb-2" style="margin-bottom: 50px;">
+            <h1 style="font-weight: 950; font-size: 2.8rem;">نظام الوكلاء والموزعين</h1>
+            <p style="color: #64748B; font-weight: 700; font-size: 1.1rem;">إدارة عمليات السحب والإيداع للمشتركين بكل
+                سهولة وأمان</p>
+        </div>
+
+        <div class="sidebar-layout">
+            <main>
+                <!-- Agent Transaction Tool -->
+                <div class="card" style="padding: 40px; border: 2px solid var(--gold);">
+                    <h3 style="font-weight: 900; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">💳
+                        تنفيذ عملية (شحن / سحب)</h3>
+
+                    <div id="status-msg"
+                        style="display: none; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 800; text-align: center;">
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>رقم هاتف المستخدم</label>
+                            <input type="text" id="target-phone" class="form-input" placeholder="09xxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label>عدد النقاط</label>
+                            <input type="number" id="points-amount" class="form-input" placeholder="أدخل الكمية">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: 20px;">
+                        <button onclick="processAction('DEPOSIT')" class="btn btn-primary"
+                            style="flex: 1; padding: 18px; font-size: 1.1rem; background: #16a34a; border-radius: 20px;">📥
+                            إيداع (شحن نقاط)</button>
+                        <button onclick="processAction('WITHDRAW')" class="btn btn-outline"
+                            style="flex: 1; padding: 18px; font-size: 1.1rem; border: 2px solid #dc2626; color: #dc2626; border-radius: 20px;">📤
+                            سحب (قبض كاش)</button>
+                    </div>
+
+                    <div
+                        style="margin-top: 30px; padding: 20px; background: #F8FAFC; border-radius: 20px; border: 1px dashed #CBD5E1;">
+                        <p style="font-size: 0.8rem; font-weight: 800; color: #64748B; line-height: 1.6;">
+                            ⚠️ ملاحظة: لا يمكن التراجع عن العملية بعد تنفيذها. يرجى التأكد من رقم الهاتف وصحة المبلغ
+                            المستلم من المشترك قبل الضغط على التنفيذ.
+                        </p>
+                    </div>
+                </div>
+            </main>
+
+            <aside>
+                <div class="card">
+                    <h3 style="font-weight: 900; margin-bottom: 20px;">العمليات الأخيرة للوكالة</h3>
+                    <div id="agent-logs" style="text-align: center; padding: 30px 0; color: #94A3B8;">
+                        <p style="font-weight: 800; font-size: 0.9rem;">بانتظار تنفيذ أول عملية...</p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 25px; background: #FFFBEB;">
+                    <h4 style="font-weight: 900; margin-bottom: 15px;">دعم الوكلاء</h4>
+                    <p style="font-size: 0.8rem; font-weight: 700; color: #92400E;">لطلب زيادة رصيد وكالة أو الإبلاغ عن
+                        مشكلة فنية، يرجى التواصل مع الإدارة الرئيسية.</p>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        function processAction(type) {
+            const phone = document.getElementById('target-phone').value;
+            const points = parseInt(document.getElementById('points-amount').value);
+            const status = document.getElementById('status-msg');
+
+            if (!phone || isNaN(points) || points <= 0) {
+                showMsg("يرجى إدخال رقم هاتف صحيح وكمية نقاط صالحة", "#fee2e2", "#dc2626");
+                return;
+            }
+
+            // For withdrawal, points are deducted from user (negative for the system to subtract)
+            const finalAmount = (type === 'DEPOSIT') ? points : -points;
+            const title = (type === 'DEPOSIT') ? "إيداع نقاط عبر وكيل" : "سحب نقاط عبر وكيل";
+
+            const result = Store.updateUserBalance(phone, finalAmount, title);
+
+            if (result.success) {
+                showMsg(`تمت العملية بنجاح! الرصيد الجديد للمشترك: ${result.newBalance} نقطة`, "#dcfce7", "#16a34a");
+                UI.updateNavbar();
+                addLog(phone, type, points);
+            } else {
+                showMsg(result.message, "#fee2e2", "#dc2626");
+            }
+        }
+
+        function showMsg(text, bg, color) {
+            const status = document.getElementById('status-msg');
+            status.style.display = 'block';
+            status.style.backgroundColor = bg;
+            status.style.color = color;
+            status.innerText = text;
+        }
+
+        function addLog(phone, type, points) {
+            const list = document.getElementById('agent-logs');
+            if (list.innerHTML.includes('بانتظار')) list.innerHTML = '';
+
+            const time = new Date().toLocaleTimeString('ar-SY');
+            list.innerHTML = `
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; font-weight: 700;">
+                    <span>${phone}</span>
+                    <span style="color: ${type === 'DEPOSIT' ? '#16a34a' : '#dc2626'}">${type === 'DEPOSIT' ? '+' : '-'}${points}</span>
+                </div>
+            ` + list.innerHTML;
+        }
+
+        // Restrict access to Agents and Admins only
+        document.addEventListener('DOMContentLoaded', () => {
+            if (Store.user && Store.user.role !== 'AGENT' && Store.user.role !== 'ADMIN') {
+                alert('هذه الصفحة مخصصة للوكلاء والموزعين فقط');
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+</body>
+
+</html>

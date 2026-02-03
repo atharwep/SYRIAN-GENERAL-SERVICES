@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خدمات النقل - بوابة الخدمات العامة</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .map-placeholder {
+            width: 100%;
+            height: 350px;
+            background: #e2e8f0;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+            border: 2px dashed #cbd5e1;
+            color: #64748B;
+            font-weight: 800;
+        }
+
+        .driver-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">ب</div>
+            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+        </a>
+        <div id="nav-right"></div>
+    </nav>
+
+    <div class="container sidebar-layout" style="padding-top: 40px;">
+        <main>
+            <div class="mb-2">
+                <h1 style="font-weight: 950; font-size: 2.5rem;">حجز رحلة جديدة</h1>
+                <p style="color: #64748B; font-weight: 700;">خدمات النقل الذكية بين المحافظات وداخل المدن</p>
+            </div>
+
+            <div class="map-placeholder">
+                <div style="font-size: 50px;">🌍</div>
+                <p>نظام التتبع الجغرافي (تفعيل الخدمة قريباً)</p>
+            </div>
+
+            <div class="card">
+                <h3 style="font-weight: 900; margin-bottom: 25px;">بيانات الرحلة</h3>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>من (نقطة الانطلاق)</label>
+                        <input type="text" class="form-input" id="pickup" placeholder="حدد الموقع">
+                    </div>
+                    <div class="form-group">
+                        <label>إلى (الوجهة)</label>
+                        <input type="text" class="form-input" id="dropoff" placeholder="حدد الوجهة">
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary"
+                        style="width: 100%; padding: 20px; font-size: 1.1rem; border-radius: 20px;">البحث عن أقرب
+                        سائق</button>
+                </div>
+            </div>
+        </main>
+
+        <aside>
+            <div class="card">
+                <h3 style="font-weight: 900; margin-bottom: 25px;">السائقون حولك</h3>
+                <div id="drivers-list">
+                    <!-- Dynamic -->
+                    <div style="text-align: center; padding: 40px 0; color: #94a3b8;">
+                        <p style="font-weight: 800; font-size: 0.9rem;">بانتظار طلبك لبدء البحث...</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+
+</html>
