@@ -109,7 +109,7 @@
             const finalAmount = (type === 'DEPOSIT') ? points : -points;
             const title = (type === 'DEPOSIT') ? "إيداع نقاط عبر وكيل" : "سحب نقاط عبر وكيل";
 
-            const result = Store.updateUserBalance(phone, finalAmount, title);
+            const result = Store.updateUserBalance(phone, finalAmount, title, Store.user.role);
 
             if (result.success) {
                 showMsg(`تمت العملية بنجاح! الرصيد الجديد للمشترك: ${result.newBalance} نقطة`, "#dcfce7", "#16a34a");

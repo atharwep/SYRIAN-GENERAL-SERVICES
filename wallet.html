@@ -68,8 +68,11 @@
             <h1 id="wallet-balance"
                 style="font-size: 4.5rem; font-weight: 950; margin-bottom: 25px; color: var(--gold);">0</h1>
             <div style="display: flex; gap: 15px; justify-content: center;">
-                <button onclick="topUp()" class="btn btn-primary" style="padding: 15px 40px; border-radius: 20px;">شحن
-                    نقاط</button>
+                <button id="topup-btn" onclick="topUp()" class="btn btn-primary"
+                    style="display: none; padding: 15px 40px; border-radius: 20px;">شحن نقاط</button>
+                <button class="btn"
+                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">سحب
+                    أموال</button>
                 <button class="btn"
                     style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">تحويل
                     نقاط</button>
@@ -116,6 +119,11 @@
             if (!Store.user) return;
             document.getElementById('wallet-balance').innerText = Store.user.balance.toLocaleString();
 
+            // Show Top Up button only for Agents and Admins
+            if (Store.user.role === 'ADMIN' || Store.user.role === 'AGENT') {
+                document.getElementById('topup-btn').style.display = 'block';
+            }
+
             const txs = Store.getData('transactions');
             const container = document.getElementById('tx-content');
 
@@ -143,9 +151,13 @@
         }
 
         function topUp() {
-            const amount = prompt("أدخل عدد النقاط التي تريد شحنها (لأغراض التجربة):", "100");
+            if (Store.user.role !== 'ADMIN' && Store.user.role !== 'AGENT') {
+                alert("عذراً، شحن الرصيد يتم فقط من خلال الوكلاء المعتمدين. يرجى زيارة أقرب وكيل لشحن حسابك.");
+                return;
+            }
+            const amount = prompt("أدخل عدد النقاط التي تريد شحنها (للمسؤولين فقط):", "100");
             if (amount && !isNaN(amount)) {
-                Store.addPoints(parseInt(amount));
+                Store.updateUserBalance(Store.user.phone, parseInt(amount), "شحن مباشر (إدارة)", Store.user.role);
                 renderWallet();
                 UI.updateNavbar();
             }

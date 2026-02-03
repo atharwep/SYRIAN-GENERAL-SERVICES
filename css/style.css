@@ -26,6 +26,33 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     line-height: 1.6;
+    animation: pageReveal 0.8s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@keyframes pageReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-transition-overlay {
+    position: fixed;
+    inset: 0;
+    background: white;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.page-transition-overlay.active {
+    opacity: 1;
 }
 
 /* Scrollbar Customization */
@@ -153,7 +180,12 @@ body {
 
 .btn-outline:hover {
     background: #f8fafc;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.btn:active {
+    transform: scale(0.96);
 }
 
 /* Cards & Layout */

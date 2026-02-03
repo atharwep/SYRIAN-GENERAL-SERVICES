@@ -203,7 +203,7 @@
             const points = parseInt(document.getElementById('admin-points').value);
             if (!phone || isNaN(points)) return;
             const final = (type === 'UP') ? points : -points;
-            const res = Store.updateUserBalance(phone, final, "تحكم إداري مباشر");
+            const res = Store.updateUserBalance(phone, final, "تحكم إداري مباشر", Store.user.role);
             showResult(res.success ? "تم تحديث الرصيد بنجاح" : res.message, res.success);
             document.getElementById('user-balance').innerText = Store.user.balance.toLocaleString();
             UI.updateNavbar();

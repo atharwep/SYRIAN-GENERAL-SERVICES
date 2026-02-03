@@ -1,4 +1,8 @@
-// Premium Core Store with Real Firebase SMS Integration
+/**
+ * GATEWAY CORE - Store & Auth Logic
+ * This file handles data management, simulated SMS, and Auth methods.
+ */
+
 const Store = {
     user: JSON.parse(localStorage.getItem('wusul_user')) || null,
 
@@ -24,7 +28,6 @@ const Store = {
         const userIndex = users.findIndex(u => u.phone === phone);
         if (userIndex === -1) return { success: false, message: "المستخدم غير موجود" };
 
-        // Security check: Only ADMIN or AGENT can perform a DEPOSIT (amount > 0)
         if (amount > 0 && performedByRole !== 'ADMIN' && performedByRole !== 'AGENT') {
             return { success: false, message: "غير مسموح لك بشحن الرصيد. يرجى مراجعة وكيل معتمد." };
         }
@@ -32,7 +35,6 @@ const Store = {
         users[userIndex].balance += amount;
         Store.setUsers(users);
 
-        // Record locally for history
         const txs = Store.getData('transactions');
         txs.unshift({
             id: Date.now(),
@@ -48,19 +50,16 @@ const Store = {
             localStorage.setItem('wusul_user', JSON.stringify(Store.user));
         }
 
-        // Send Welcome/Notification SMS for Deposits (Real SMS via Firebase in prod, simulation in dev)
         SMS.send(phone, `إشعار محفظة: ${title}. الكمية: ${amount} نقطة. رصيدك الحالي: ${users[userIndex].balance} نقطة.`);
 
         return { success: true, newBalance: users[userIndex].balance };
     }
 };
 
-// Professional SMS Gateway (Firebase + Simulation)
 const SMS = {
     currentOTP: null,
     confirmationResult: null,
 
-    // Convert local Syrian number to International format (+963)
     formatPhone: (phone) => {
         let p = phone.trim();
         if (p.startsWith('09')) p = '+963' + p.substring(1);
@@ -69,7 +68,6 @@ const SMS = {
     },
 
     send: (phone, message) => {
-        // Simulation Toast
         const toast = document.createElement('div');
         toast.className = "sms-toast";
         toast.style.cssText = `
@@ -100,15 +98,9 @@ const Auth = {
                 body: JSON.stringify({ phone, password })
             });
             const data = await response.json();
-            if (response.ok) {
-                return { success: true, user: data.user, token: data.token };
-            } else {
-                // Return server error message
-                return { success: false, message: data.message || "بيانات الدخول غير صحيحة" };
-            }
+            if (response.ok) return { success: true, user: data.user, token: data.token };
+            return { success: false, message: data.message || "بيانات الدخول غير صحيحة" };
         } catch (error) {
-            console.error("API Login Error, falling back to local:", error);
-            // Fallback for local testing
             const user = Store.getUsers().find(u => u.phone === phone && u.password === password);
             if (user) return { success: true, user };
             return { success: false, message: "بيانات الدخول غير صحيحة أو السيرفر متوقف" };
@@ -124,95 +116,55 @@ const Auth = {
             });
             const data = await response.json();
             if (response.ok) {
-                // Save to local DB as well for consistency in hybrid mode
                 const users = Store.getUsers();
                 if (!users.find(u => u.phone === phone)) {
-                    users.push({ ...data.user, password }); // Password stored locally for demo
+                    users.push({ ...data.user, password });
                     Store.setUsers(users);
                 }
                 return { success: true, user: data.user, token: data.token };
-            } else {
-                return { success: false, message: data.message || "فشل إنشاء الحساب" };
             }
+            return { success: false, message: data.message || "فشل إنشاء الحساب" };
         } catch (error) {
-            console.error("API Register Error, falling back to local:", error);
-            // Local fallback
             const users = Store.getUsers();
-            if (users.find(u => u.phone === phone)) {
-                return { success: false, message: "المسخدم موجود مسبقاً محلياً" };
-            }
-            const newUser = {
-                id: Date.now(),
-                name,
-                phone,
-                password,
-                role,
-                balance: 0,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
-            };
+            if (users.find(u => u.phone === phone)) return { success: false, message: "المسخدم موجود مسبقاً محلياً" };
+            const newUser = { id: Date.now(), name, phone, password, role, balance: 0, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}` };
             users.push(newUser);
             Store.setUsers(users);
             return { success: true, user: newUser };
         }
     },
 
-    // Real Firebase OTP Sent
     sendOTP: (phone, elementId) => {
         const fullPhone = SMS.formatPhone(phone);
-
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            const appVerifier = new firebase.auth.RecaptchaVerifier(elementId, {
-                'size': 'invisible'
-            });
-
+            const appVerifier = new firebase.auth.RecaptchaVerifier(elementId, { 'size': 'invisible' });
             return firebase.auth().signInWithPhoneNumber(fullPhone, appVerifier)
-                .then((result) => {
-                    SMS.confirmationResult = result;
-                    return { success: true };
-                }).catch((error) => {
-                    console.error("Firebase SMS Error:", error);
-                    // Fallback to simulation if Firebase fails (e.g. domain not authorized)
+                .then((result) => { SMS.confirmationResult = result; return { success: true }; })
+                .catch((error) => {
                     const opt = Math.floor(100000 + Math.random() * 900000);
                     SMS.currentOTP = opt;
                     SMS.send(phone, `[تجريبي] رمز الأمان الخاص بك هو: ${opt}`);
                     return { success: true, simulated: true, code: opt };
                 });
-        } else {
-            // Simulated OTP
-            const opt = Math.floor(100000 + Math.random() * 900000);
-            SMS.currentOTP = opt;
-            SMS.send(phone, `[محاكاة] رمز الأمان الخاص بك هو: ${opt}`);
-            return Promise.resolve({ success: true, simulated: true, code: opt });
         }
+        const opt = Math.floor(100000 + Math.random() * 900000);
+        SMS.currentOTP = opt;
+        SMS.send(phone, `[محاكاة] رمز الأمان الخاص بك هو: ${opt}`);
+        return Promise.resolve({ success: true, simulated: true, code: opt });
     },
 
     verifyOTP: (code) => {
         if (SMS.confirmationResult) {
-            return SMS.confirmationResult.confirm(code)
-                .then(() => ({ success: true }))
-                .catch(() => ({ success: false, message: "رمز التأكيد غير صحيح" }));
-        } else {
-            // Simulated verification
-            if (code == SMS.currentOTP) return Promise.resolve({ success: true });
-            return Promise.resolve({ success: false, message: "رمز التأكيد غير صحيح" });
+            return SMS.confirmationResult.confirm(code).then(() => ({ success: true })).catch(() => ({ success: false, message: "رمز التأكيد غير صحيح" }));
         }
+        if (code == SMS.currentOTP) return Promise.resolve({ success: true });
+        return Promise.resolve({ success: false, message: "رمز التأكيد غير صحيح" });
     },
 
     finalizeLogin: (user, token = null) => {
         localStorage.setItem('wusul_user', JSON.stringify(user));
         if (token) localStorage.setItem('wusul_token', token);
         Store.user = user;
-    },
-
-    resetPassword: (phone, newPassword) => {
-        const users = Store.getUsers();
-        const idx = users.findIndex(u => u.phone === phone);
-        if (idx !== -1) {
-            users[idx].password = newPassword;
-            Store.setUsers(users);
-            return true;
-        }
-        return false;
     },
 
     logout: () => {
@@ -230,59 +182,5 @@ const Auth = {
     }
 };
 
-const UI = {
-    initResponsive: () => {
-        const toggle = document.getElementById('mobile-toggle');
-        const menu = document.getElementById('nav-menu');
-        if (toggle && menu) {
-            toggle.onclick = () => {
-                toggle.classList.toggle('active');
-                menu.classList.toggle('active');
-            };
-        }
-    },
-
-    updateNavbar: () => {
-        const navRight = document.getElementById('nav-right');
-        if (!navRight) return;
-
-        if (Store.user) {
-            navRight.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="user-info-nav" style="text-align: left;">
-                        <p style="font-size: 8px; font-weight: 800; color: #64748B;">⭐️ ${Store.user.role}</p>
-                        <p style="font-size: 11px; font-weight: 900; color: #C5A021;">${Store.user.balance.toLocaleString()} نقطة</p>
-                    </div>
-                    <img src="${Store.user.avatar}" style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold);">
-                    <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 6px 10px; font-size: 10px;">خروج</button>
-                </div>
-            `;
-        } else {
-            navRight.innerHTML = `<a href="login.html" class="btn btn-primary" style="padding: 8px 15px; font-size: 12px;">دخول</a>`;
-        }
-    }
-};
-
-// Global SlideDown Animation
-const appStyle = document.createElement('style');
-appStyle.innerHTML = `
-@keyframes slideDown { from { top: -100px; opacity: 0; } to { top: 20px; opacity: 1; } }
-@media(max-width: 480px) { .user-info-nav { display: none !important; } }
-`;
-document.head.appendChild(appStyle);
-
-// Initialize Firebase Production
-if (typeof firebase !== 'undefined' && CONFIG.FIREBASE_CONFIG.apiKey !== "AIzaSy...") {
-    try {
-        firebase.initializeApp(CONFIG.FIREBASE_CONFIG);
-        console.log("🚀 Firebase Production Ready.");
-    } catch (e) { console.error("Firebase Init Error:", e); }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    Store.init();
-    Auth.check();
-    UI.updateNavbar();
-    UI.initResponsive();
-});
-
+// Auto Init
+Store.init();
