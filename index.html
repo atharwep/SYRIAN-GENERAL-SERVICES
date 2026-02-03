@@ -20,17 +20,36 @@
             </div>
         </a>
 
-        <div class="nav-links">
-            <a href="index.html">الرئيسية</a>
+        <div class="nav-links" id="nav-menu">
+            <a href="index.html" class="active">الرئيسية</a>
             <a href="doctors.html">الأطباء</a>
             <a href="taxi.html">النقل</a>
             <a href="wallet.html">المحفظة</a>
         </div>
 
-        <div id="nav-right">
+        <div id="nav-right" style="display: flex; align-items: center; gap: 15px;">
             <!-- Managed by auth.js -->
         </div>
+
+        <div class="menu-toggle" id="mobile-toggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
     </nav>
+
+    <script>
+        // Mobile Menu Toggle Logic
+        const toggle = document.getElementById('mobile-toggle');
+        const menu = document.getElementById('nav-menu');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('active');
+                menu.classList.toggle('active');
+            });
+        }
+    </script>
 
     <div class="container hero text-center" style="padding: 100px 5% 60px;">
         <div
@@ -98,6 +117,17 @@
 
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
+    <script>
+        // كاشف الأخطاء للرفع
+        window.onload = () => {
+            const cssLoaded = document.styleSheets.length > 0;
+            const jsLoaded = typeof Store !== 'undefined';
+            if (!cssLoaded || !jsLoaded) {
+                console.error("⚠️ فشل تحميل الملفات الأساسية!");
+                alert("تنبيه: ملفات CSS أو JS لم يتم تحميلها بشكل صحيح. يرجى التأكد من رفع مجلدات css و js إلى GitHub بنفس مسار ملفات HTML.");
+            }
+        };
+    </script>
 </body>
 
 </html>
