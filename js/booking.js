@@ -39,6 +39,88 @@ const state = {
 // Global Elements Cache
 let els = {};
 
+// --- Initialization ---
+async function init() {
+    try {
+        console.log("Initializing Booking Page...");
+
+        // 0. Load Real User
+        const savedUser = JSON.parse(localStorage.getItem('wusul_user'));
+        if (savedUser) {
+            state.user = savedUser;
+        }
+
+        // Initialize Elements
+        els = {
+            queueCount: document.getElementById('queue-count'),
+            estTime: document.getElementById('est-time'),
+            servicesGrid: document.getElementById('services-grid'),
+            bookBtn: document.getElementById('book-btn'),
+            modal: document.getElementById('confirm-modal'),
+            modalContent: document.getElementById('modal-details'),
+            confirmPayBtn: document.getElementById('confirm-pay-btn'),
+            notification: document.getElementById('notification'),
+            notifMessage: document.getElementById('notif-message'),
+            notifIcon: document.getElementById('notif-icon'),
+            docName: document.getElementById('doc-name'),
+            docSpec: document.getElementById('doc-spec'),
+            verifiedBadge: document.getElementById('verified-badge')
+        };
+
+        // Validate Critical Elements
+        if (!els.bookBtn || !els.servicesGrid) {
+            console.error("Critical elements missing");
+            // Don't throw to allow partial load
+        }
+
+        // --- Attach Event Listeners ---
+        if (els.bookBtn) {
+            els.bookBtn.onclick = () => {
+                if (state.queue.myTicket) {
+                    showNotification("لديك حجز مؤكد بالفعل!", "info");
+                } else {
+                    showPaymentModal();
+                }
+            };
+        }
+
+        if (els.confirmPayBtn) {
+            els.confirmPayBtn.onclick = processPayment;
+        }
+
+        if (els.modal) {
+            els.modal.onclick = (e) => {
+                if (e.target === els.modal) closeModal();
+            };
+        }
+
+        // 1. Load Data
+        await loadDoctorData();
+
+        // 2. Render UI
+        renderDoctorInfo();
+        renderServices();
+        updateQueueDisplay();
+
+        // 3. Start Polling/Realtime Simulation
+        startQueueSimulation();
+
+        // 4. Request Notification Permission
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                state.settings.notificationsEnabled = permission === 'granted';
+            });
+        }
+    } catch (error) {
+        console.error("Initialization Error:", error);
+        if (document.getElementById('doc-name')) {
+            document.getElementById('doc-name').innerText = "حدث خطأ غير متوقع";
+            document.getElementById('doc-spec').innerText = error.message || "يرجى إعادة تحميل الصفحة";
+            document.getElementById('doc-spec').style.color = "#ef4444";
+        }
+    }
+}
+
 // --- Logic & Rendering ---
 
 async function loadDoctorData() {
