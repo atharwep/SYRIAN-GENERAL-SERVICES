@@ -109,6 +109,18 @@
                         style="display: none; padding: 12px; border-radius: 12px; margin-bottom: 20px; font-weight: 800; font-size: 0.8rem; text-align: center;">
                     </div>
 
+                    <!-- User Search -->
+                    <div
+                        style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px;">
+                        <h4 style="color: var(--gold); margin-bottom: 10px; font-weight: 900;">🔍 بحث عن مستخدم</h4>
+                        <input type="text" id="user-search-input" class="form-input"
+                            style="background: rgba(255,255,255,0.05); color: white;"
+                            placeholder="ابحث بالاسم أو رقم الهاتف..." onkeyup="searchUserUI()">
+                        <div id="user-search-results"
+                            style="margin-top: 10px; display: none; background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden;">
+                        </div>
+                    </div>
+
                     <div class="registration-form"
                         style="max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px;">
                         <div class="grid grid-2" style="gap: 15px;">
@@ -155,6 +167,33 @@
                                 style="flex: 1; background: #dc2626; color: white; font-size: 0.8rem;">حذف الطبيب
                                 🗑️</button>
                         </div>
+                    </div>
+
+                    <!-- Add New Doctor -->
+                    <h4 style="color: var(--gold); margin: 25px 0 15px; font-weight: 900;">➕ إضافة طبيب جديد</h4>
+                    <div
+                        style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px;">
+                        <input type="text" id="new-doc-name" class="form-input"
+                            style="background: rgba(255,255,255,0.05); color: white; margin-bottom: 10px;"
+                            placeholder="الاسم الكامل">
+                        <div class="grid grid-2" style="gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="new-doc-phone" class="form-input"
+                                style="background: rgba(255,255,255,0.05); color: white;" placeholder="رقم الهاتف">
+                            <input type="text" id="new-doc-pass" class="form-input"
+                                style="background: rgba(255,255,255,0.05); color: white;" placeholder="كلمة المرور">
+                        </div>
+                        <div class="grid grid-2" style="gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="new-doc-spec" class="form-input"
+                                style="background: rgba(255,255,255,0.05); color: white;" placeholder="التخصص">
+                            <input type="text" id="new-doc-city" class="form-input"
+                                style="background: rgba(255,255,255,0.05); color: white;" placeholder="المدينة">
+                        </div>
+                        <input type="text" id="new-doc-price" class="form-input"
+                            style="background: rgba(255,255,255,0.05); color: white; margin-bottom: 10px;"
+                            placeholder="السعر (مثال: $20 أو 50000 ل.س)">
+
+                        <button onclick="addNewDoctor()" class="btn btn-primary" style="width: 100%;">تسجيل طبيب جديد
+                            ✨</button>
                     </div>
 
                     <!-- Doctor Approval -->
@@ -301,6 +340,64 @@
 
             const res = Store.deleteDoctor(phone);
             showResult(res.message, res.success);
+        }
+
+        function searchUserUI() {
+            const query = document.getElementById('user-search-input').value;
+            const resultsDiv = document.getElementById('user-search-results');
+
+            if (query.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            const results = Store.searchUsers(query);
+
+            if (results.length > 0) {
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = results.map(u => `
+                    <div onclick="selectUser('${u.phone}', '${u.name}')" 
+                         style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;"
+                         onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                         onmouseout="this.style.background='transparent'">
+                        <div style="font-weight: bold; color: white;">${u.name}</div>
+                        <div style="font-size: 0.8rem; color: #94a3b8;">${u.phone} (${u.role})</div>
+                    </div>
+                `).join('');
+            } else {
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `<div style="padding: 10px; color: #94a3b8; text-align: center;">لا يوجد نتائج</div>`;
+            }
+        }
+
+        function selectUser(phone, name) {
+            document.getElementById('admin-phone').value = phone;
+            document.getElementById('manage-doc-phone').value = phone;
+            document.getElementById('user-search-input').value = `${name} (${phone})`;
+            document.getElementById('user-search-results').style.display = 'none';
+        }
+
+        function addNewDoctor() {
+            const name = document.getElementById('new-doc-name').value;
+            const phone = document.getElementById('new-doc-phone').value;
+            const pass = document.getElementById('new-doc-pass').value;
+            const spec = document.getElementById('new-doc-spec').value;
+            const city = document.getElementById('new-doc-city').value;
+            const price = document.getElementById('new-doc-price').value;
+
+            if (!name || !phone || !pass || !spec) {
+                showResult("يرجى تعبئة الحقول الأساسية (الاسم، الهاتف، كلمة المرور، التخصص)", false);
+                return;
+            }
+
+            const res = Store.addDoctor(name, phone, pass, spec, price, city);
+            showResult(res.message, res.success);
+
+            if (res.success) {
+                // Clear inputs
+                document.querySelectorAll('#new-doc-name, #new-doc-phone, #new-doc-pass, #new-doc-spec, #new-doc-city, #new-doc-price')
+                    .forEach(inp => inp.value = '');
+            }
         }
     </script>
 </body>

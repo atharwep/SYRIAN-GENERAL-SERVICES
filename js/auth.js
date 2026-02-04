@@ -156,6 +156,50 @@ const Store = {
 
         Store.setData('doctors', doctors);
         return { success: true, message: "تم تعديل بيانات الطبيب بنجاح" };
+    },
+
+    addDoctor: (name, phone, password, spec, price, city) => {
+        const users = Store.getUsers();
+        if (users.find(u => u.phone === phone)) {
+            return { success: false, message: "رقم الهاتف مستخدم مسبقاً" };
+        }
+
+        const newUser = {
+            id: Date.now(),
+            name,
+            phone,
+            password,
+            role: 'DOCTOR',
+            balance: 0,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name.replace(' ', '+')}`
+        };
+
+        users.push(newUser);
+        Store.setUsers(users);
+
+        let doctors = Store.getData('doctors') || [];
+        doctors.push({
+            id: newUser.id,
+            name: "د. " + name,
+            specialty: spec || "عام",
+            city: city || "غير محدد",
+            cost: 0,
+            displayPrice: price || "غير محدد",
+            avatar: newUser.avatar,
+            services: []
+        });
+        Store.setData('doctors', doctors);
+
+        return { success: true, message: "تم إضافة الطبيب الجديد بنجاح" };
+    },
+
+    searchUsers: (query) => {
+        if (!query) return [];
+        const q = query.toLowerCase();
+        return Store.getUsers().filter(u =>
+            u.name.toLowerCase().includes(q) ||
+            u.phone.includes(q)
+        ).slice(0, 5); // Return top 5
     }
 };
 
@@ -354,7 +398,7 @@ const UI = {
             navRight.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div class="user-info-nav" style="text-align: left;">
-                        <p style="font-size: 8px; font-weight: 800; color: #64748B;">⭐️ ${Store.user.role}</p>
+                        <p style="font-size: 11px; font-weight: 800; color: var(--text-muted);">👋 مرحباً، ${Store.user.name}</p>
                         <p style="font-size: 11px; font-weight: 900; color: #10b981;">$${(Store.user.walletUSD || 0).toLocaleString()} | ${(Store.user.walletSYP || 0).toLocaleString()} ل.س</p>
                     </div>
                     <img src="${Store.user.avatar}" style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold);">
