@@ -39,141 +39,53 @@ const state = {
 // Global Elements Cache
 let els = {};
 
-// Mock Database
-const MOCK_DOCTORS = {
-    '1': {
-        id: 1,
-        name: "د. أحمد عبدالله",
-        specialty: "استشاري قلب وأوعية دموية",
-        isVerified: true,
-        services: [
-            { id: 'consult_usd', name: 'كشف عيادة (VIP)', price: 40, currency: 'USD', duration: 20 },
-            { id: 'consult_syp', name: 'كشف عيادة (عام)', price: 300000, currency: 'SYP', duration: 20 },
-            { id: 'urgent', name: 'حالة طارئة', price: 60, currency: 'USD', duration: 15 }
-        ]
-    },
-    '2': {
-        id: 2,
-        name: "د. سارة محمد",
-        specialty: "أخصائية طب أطفال",
-        isVerified: true,
-        services: [
-            { id: 'kids_check', name: 'فحص أطفال', price: 150000, currency: 'SYP', duration: 15 },
-            { id: 'vaccine', name: 'لقاحات ومتابعة', price: 100000, currency: 'SYP', duration: 10 }
-        ]
-    },
-    '3': {
-        id: 3,
-        name: "د. خالد العمر",
-        specialty: "استشاري جلدية",
-        isVerified: false,
-        services: [
-            { id: 'derma_consult', name: 'استشارة جلدية', price: 50, currency: 'USD', duration: 15 },
-            { id: 'laser', name: 'جلسة ليزر', price: 100, currency: 'USD', duration: 30 }
-        ]
-    },
-    'default': {
-        id: 0,
-        name: "د. غير معروف",
-        specialty: "عام",
-        isVerified: false,
-        services: [
-            { id: 'gen', name: 'كشف عام', price: 50000, currency: 'SYP', duration: 15 }
-        ]
-    }
-};
-
-// --- Initialization ---
-async function init() {
-    try {
-        console.log("Initializing Booking Page...");
-
-        // 0. Load Real User
-        const savedUser = JSON.parse(localStorage.getItem('wusul_user'));
-        if (savedUser) {
-            state.user = savedUser;
-        }
-
-        // Initialize Elements
-        els = {
-            queueCount: document.getElementById('queue-count'),
-            estTime: document.getElementById('est-time'),
-            servicesGrid: document.getElementById('services-grid'),
-            bookBtn: document.getElementById('book-btn'),
-            modal: document.getElementById('confirm-modal'),
-            modalContent: document.getElementById('modal-details'),
-            confirmPayBtn: document.getElementById('confirm-pay-btn'),
-            notification: document.getElementById('notification'),
-            notifMessage: document.getElementById('notif-message'),
-            notifIcon: document.getElementById('notif-icon'),
-            docName: document.getElementById('doc-name'),
-            docSpec: document.getElementById('doc-spec'),
-            verifiedBadge: document.getElementById('verified-badge')
-        };
-
-        // Validate Critical Elements
-        if (!els.bookBtn || !els.servicesGrid) {
-            console.error("Critical elements missing");
-            throw new Error("عنصر التحكم الرئيسي مفقود");
-        }
-
-        // --- Attach Event Listeners ---
-        els.bookBtn.onclick = () => {
-            if (state.queue.myTicket) {
-                showNotification("لديك حجز مؤكد بالفعل!", "info");
-            } else {
-                showPaymentModal();
-            }
-        };
-
-        if (els.confirmPayBtn) {
-            els.confirmPayBtn.onclick = processPayment;
-        }
-
-        if (els.modal) {
-            els.modal.onclick = (e) => {
-                if (e.target === els.modal) closeModal();
-            };
-        }
-
-        // 1. Load Data
-        await loadDoctorData();
-
-        // 2. Render UI
-        renderDoctorInfo();
-        renderServices();
-        updateQueueDisplay();
-
-        // 3. Start Polling/Realtime Simulation
-        startQueueSimulation();
-
-        // 4. Request Notification Permission
-        if ('Notification' in window) {
-            Notification.requestPermission().then(permission => {
-                state.settings.notificationsEnabled = permission === 'granted';
-            });
-        }
-    } catch (error) {
-        console.error("Initialization Error:", error);
-        if (document.getElementById('doc-name')) {
-            document.getElementById('doc-name').innerText = "حدث خطأ غير متوقع";
-            document.getElementById('doc-spec').innerText = error.message || "يرجى إعادة تحميل الصفحة";
-            document.getElementById('doc-spec').style.color = "#ef4444";
-        }
-    }
-}
-
 // --- Logic & Rendering ---
 
 async function loadDoctorData() {
     const urlParams = new URLSearchParams(window.location.search);
-    const docId = urlParams.get('id') || '1';
+    const docId = urlParams.get('id');
 
-    const doctorData = MOCK_DOCTORS[docId] || MOCK_DOCTORS['default'];
-    if (!doctorData) throw new Error("بيانات الطبيب غير متوفرة");
+    // Load Doctors from LocalStorage
+    const storedDoctors = JSON.parse(localStorage.getItem('wusul_db_doctors')) || [];
+
+    // Find the doctor
+    // Note: stored IDs might be numbers or strings, so loose equality is safer or toString()
+    let doctorData = storedDoctors.find(d => d.id == docId);
+
+    if (!doctorData) {
+        // Fallback or specific default
+        if (docId === '1') {
+            // Keep original mock for ID 1 if not in DB for some reason (backward comp)
+            doctorData = {
+                id: 1,
+                name: "د. أحمد عبدالله",
+                specialty: "استشاري قلب وأوعية دموية",
+                isVerified: true,
+                services: [
+                    { id: 'consult_usd', name: 'كشف عيادة (VIP)', price: 40, currency: 'USD', duration: 20 },
+                    { id: 'consult_syp', name: 'كشف عيادة (عام)', price: 300000, currency: 'SYP', duration: 20 }
+                ]
+            };
+        } else {
+            throw new Error("بيانات الطبيب غير متوفرة");
+        }
+    }
 
     state.doctor = { ...doctorData };
-    state.services = doctorData.services || []; // Load specific services
+
+    // Ensure Services exist
+    state.services = doctorData.services || [];
+
+    // If no services found (e.g. new doctor), add default generic service
+    if (state.services.length === 0) {
+        state.services.push({
+            id: 'gen_check',
+            name: 'كشف واستشارة عامة',
+            price: 50000,
+            currency: 'SYP',
+            duration: 15
+        });
+    }
 
     state.queue.lastTicket = Math.floor(Math.random() * 10) + 5;
     state.queue.currentServing = Math.floor(state.queue.lastTicket / 2);
