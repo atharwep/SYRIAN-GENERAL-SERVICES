@@ -11,25 +11,43 @@ const Store = {
     init: () => {
         if (!localStorage.getItem('wusul_db_init')) {
             const seedUsers = [
-                { id: 1, name: "إدارة النظام", phone: "0936020439", password: "202025", role: "ADMIN", balance: 10000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin" },
-                { id: 2, name: "وكيل معتمد", phone: "0900000000", password: "agent", role: "AGENT", balance: 5000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=agent1" }
+                { id: 1, name: "إدارة النظام", phone: "0936020439", password: "202025", role: "ADMIN", walletUSD: 1000, walletSYP: 15000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin" },
+                { id: 2, name: "وكيل معتمد", phone: "0900000000", password: "agent", role: "AGENT", walletUSD: 500, walletSYP: 5000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=agent1" }
             ];
             Store.setUsers(seedUsers);
+
+            // Seed Doctors if not exists
+            const seedDoctors = [
+                { id: 1, name: "د. أحمد عبدالله", specialty: "استشاري قلب وأوعية دموية", city: "دمشق", displayPrice: "$40", avatar: "https://ui-avatars.com/api/?name=Ahmed+Abdullah&background=0D8ABC&color=fff" },
+                { id: 2, name: "د. سارة محمد", specialty: "أخصائية طب أطفال", city: "حلب", displayPrice: "150,000 ل.س", avatar: "https://ui-avatars.com/api/?name=Sara+Mohamed&background=E91E63&color=fff" },
+                { id: 3, name: "د. خالد العمر", specialty: "استشاري جلدية", city: "اللاذقية", displayPrice: "$50", avatar: "https://ui-avatars.com/api/?name=Khaled+Omar&background=4CAF50&color=fff" }
+            ];
+            Store.setData('doctors', seedDoctors);
+
             localStorage.setItem('wusul_db_init', 'true');
         }
     },
 
-    updateUserBalance: (phone, amount, title, performedByRole = 'USER') => {
+    updateUserBalance: (phone, amount, currency, title, performedByRole = 'USER') => {
         const users = Store.getUsers();
         const userIndex = users.findIndex(u => u.phone === phone);
         if (userIndex === -1) return { success: false, message: "المستخدم غير موجود" };
 
-        // Security check: Only ADMIN or AGENT can perform a DEPOSIT (amount > 0)
+        // Security check
         if (amount > 0 && performedByRole !== 'ADMIN' && performedByRole !== 'AGENT') {
-            return { success: false, message: "غير مسموح لك بشحن الرصيد. يرجى مراجعة وكيل معتمد." };
+            return { success: false, message: "غير مسموح لك بشحن الرصيد." };
         }
 
-        users[userIndex].balance += amount;
+        // Initialize wallets if missing (migration)
+        if (users[userIndex].walletUSD === undefined) users[userIndex].walletUSD = 0;
+        if (users[userIndex].walletSYP === undefined) users[userIndex].walletSYP = 0;
+
+        if (currency === 'USD') {
+            users[userIndex].walletUSD += amount;
+        } else {
+            users[userIndex].walletSYP += amount;
+        }
+
         Store.setUsers(users);
 
         // Record locally for history
@@ -38,20 +56,106 @@ const Store = {
             id: Date.now(),
             userPhone: phone,
             amount: amount,
+            currency: currency,
             title: title,
             date: new Date().toLocaleString('ar-SY')
         });
         Store.setData('transactions', txs);
 
         if (Store.user && Store.user.phone === phone) {
-            Store.user.balance = users[userIndex].balance;
+            Store.user = users[userIndex];
             localStorage.setItem('wusul_user', JSON.stringify(Store.user));
         }
 
-        // Send Welcome/Notification SMS for Deposits (Real SMS via Firebase in prod, simulation in dev)
-        SMS.send(phone, `إشعار محفظة: ${title}. الكمية: ${amount} نقطة. رصيدك الحالي: ${users[userIndex].balance} نقطة.`);
+        return { success: true, newBalance: currency === 'USD' ? users[userIndex].walletUSD : users[userIndex].walletSYP };
+    },
 
-        return { success: true, newBalance: users[userIndex].balance };
+    activateAgent: (phone) => {
+        const users = Store.getUsers();
+        const idx = users.findIndex(u => u.phone === phone);
+        if (idx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        users[idx].role = 'AGENT';
+        Store.setUsers(users);
+        return { success: true, message: "تم تفعيل حساب الوكيل بنجاح" };
+    },
+
+    approveDoctor: (phone) => {
+        const users = Store.getUsers();
+        const idx = users.findIndex(u => u.phone === phone);
+        if (idx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        users[idx].role = 'DOCTOR';
+        Store.setUsers(users);
+
+        // Also add to Doctors DB if not exists
+        let doctors = Store.getData('doctors') || []; // Ensure array
+        // Check if doctor exists by ID or similar name logic if ID isn't stable
+        // For this mock, relying on ID is risky if ID=0 etc, but assuming unique IDs from seed
+        if (!doctors.find(d => d.id === users[idx].id)) {
+            doctors.push({
+                id: users[idx].id, // Ensure this matches User ID
+                name: "د. " + users[idx].name,
+                specialty: "عام (تحت التدقيق)",
+                cost: 0,
+                avatar: users[idx].avatar,
+                services: []
+            });
+            Store.setData('doctors', doctors);
+        }
+
+        return { success: true, message: "تم اعتماد المستخدم كطبيب بنجاح" };
+    },
+
+    makeAdmin: (phone) => {
+        const users = Store.getUsers();
+        const idx = users.findIndex(u => u.phone === phone);
+        if (idx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        users[idx].role = 'ADMIN';
+        Store.setUsers(users);
+        return { success: true, message: " تمت ترقية المستخدم لمدير عام بنجاح 👑" };
+    },
+
+    deleteDoctor: (phone) => {
+        const users = Store.getUsers();
+        const uIdx = users.findIndex(u => u.phone === phone);
+        if (uIdx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        // Demote Role
+        if (users[uIdx].role === 'DOCTOR') {
+            users[uIdx].role = 'USER';
+            Store.setUsers(users);
+        } else {
+            return { success: false, message: "هذا الرقم لا يعود لطبيب" };
+        }
+
+        // Remove from Doctors DB
+        let doctors = Store.getData('doctors') || [];
+        const dIdx = doctors.findIndex(d => d.id === users[uIdx].id);
+        if (dIdx !== -1) {
+            doctors.splice(dIdx, 1);
+            Store.setData('doctors', doctors);
+            return { success: true, message: "تم حذف الطبيب بنجاح وإلغاء صلاحياته" };
+        }
+        return { success: true, message: "تم إلغاء صلاحية الطبيب (لم يكن في القائمة العامة)" };
+    },
+
+    editDoctor: (phone, spec, price) => {
+        const users = Store.getUsers();
+        const uIdx = users.findIndex(u => u.phone === phone);
+        if (uIdx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        let doctors = Store.getData('doctors') || [];
+        const dIdx = doctors.findIndex(d => d.id === users[uIdx].id);
+
+        if (dIdx === -1) return { success: false, message: "لم يتم العثور على سجل الطبيب" };
+
+        if (spec) doctors[dIdx].specialty = spec;
+        if (price) doctors[dIdx].displayPrice = price;
+
+        Store.setData('doctors', doctors);
+        return { success: true, message: "تم تعديل بيانات الطبيب بنجاح" };
     }
 };
 
@@ -251,7 +355,7 @@ const UI = {
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div class="user-info-nav" style="text-align: left;">
                         <p style="font-size: 8px; font-weight: 800; color: #64748B;">⭐️ ${Store.user.role}</p>
-                        <p style="font-size: 11px; font-weight: 900; color: #C5A021;">${Store.user.balance.toLocaleString()} نقطة</p>
+                        <p style="font-size: 11px; font-weight: 900; color: #10b981;">$${(Store.user.walletUSD || 0).toLocaleString()} | ${(Store.user.walletSYP || 0).toLocaleString()} ل.س</p>
                     </div>
                     <img src="${Store.user.avatar}" style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold);">
                     <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 6px 10px; font-size: 10px;">خروج</button>

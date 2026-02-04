@@ -109,21 +109,62 @@
                         style="display: none; padding: 12px; border-radius: 12px; margin-bottom: 20px; font-weight: 800; font-size: 0.8rem; text-align: center;">
                     </div>
 
-                    <div class="grid grid-2" style="gap: 15px;">
-                        <input type="text" id="admin-phone" class="form-input"
-                            style="background: rgba(255,255,255,0.05); color: white;" placeholder="رقم هاتف المستخدم">
-                        <input type="number" id="admin-points" class="form-input"
-                            style="background: rgba(255,255,255,0.05); color: white;" placeholder="كمية النقاط">
-                    </div>
+                    <div class="registration-form"
+                        style="max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px;">
+                        <div class="grid grid-2" style="gap: 15px;">
+                            <input type="text" id="admin-phone" class="form-input"
+                                style="background: rgba(0,0,0,0.05); color: #000;" placeholder="رقم هاتف المستخدم">
+                            <input type="number" id="admin-points" class="form-input"
+                                style="background: rgba(0,0,0,0.05); color: #000;" placeholder="الكمية">
+                        </div>
+                        <select id="admin-currency" class="form-input"
+                            style="background: rgba(0,0,0,0.05); margin-top: 10px; color: #000;">
+                            <option value="SYP">ليرة سورية (SYP)</option>
+                            <option value="USD">دولار أمريكي (USD)</option>
+                        </select>
 
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button onclick="adminPoints('UP')" class="btn btn-primary" style="flex: 1.5;">إيداع نقاط
-                            (+)</button>
-                        <button onclick="adminPoints('DOWN')" class="btn"
-                            style="flex: 1; background: #dc2626; color: white;">سحب (-)</button>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="adminPoints('UP')" class="btn btn-primary" style="flex: 1.5;">إيداع رصيد
+                                (+)</button>
+                            <button onclick="adminPoints('DOWN')" class="btn"
+                                style="flex: 1; background: #dc2626; color: white;">سحب (-)</button>
+                        </div>
                     </div>
 
                     <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                    <!-- Doctor Management -->
+                    <h4 style="color: var(--gold); margin-bottom: 15px; font-weight: 900;">🏥 إدارة الأطباء</h4>
+                    <div
+                        style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                        <input type="text" id="manage-doc-phone" class="form-input"
+                            style="background: rgba(255,255,255,0.05); color: white; margin-bottom: 10px;"
+                            placeholder="رقم هاتف الطبيب">
+
+                        <div class="grid grid-2" style="gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="edit-doc-spec" class="form-input"
+                                style="background: rgba(255,255,255,0.05); color: white;" placeholder="التخصص الجديد">
+                            <input type="text" id="edit-doc-price" class="form-input"
+                                style="background: rgba(255,255,255,0.05); color: white;" placeholder="السعر (نصي)">
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="editDoctor()" class="btn btn-primary"
+                                style="flex: 1; font-size: 0.8rem;">تعديل البيانات ✏️</button>
+                            <button onclick="deleteDoctor()" class="btn"
+                                style="flex: 1; background: #dc2626; color: white; font-size: 0.8rem;">حذف الطبيب
+                                🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Doctor Approval -->
+                    <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
+                        <p style="font-size: 0.85rem; font-weight: 800; color: #94a3b8; flex: 1;">اعتماد العضو كطبيب:
+                        </p>
+                        <button onclick="approveDoctor()" class="btn"
+                            style="background: #2563eb; color: white; padding: 12px 30px; border-radius: 15px;">اعتماد
+                            طبيب 🩺</button>
+                    </div>
 
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <p style="font-size: 0.85rem; font-weight: 800; color: #94a3b8; flex: 1;">تفعيل رتبة وكيل لهذا
@@ -132,6 +173,14 @@
                             style="background: #16a34a; color: white; padding: 12px 30px; border-radius: 15px;">تفعيل
                             كوكيل رسمي ✅</button>
                     </div>
+
+                    <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                    <!-- Financial Reports Link -->
+                    <a href="reports.html" class="btn"
+                        style="display: block; width: 100%; text-align: center; background:rgba(255,255,255,0.1); color: white; margin-top: 15px;">
+                        📊 عرض التقارير المالية المركزية
+                    </a>
                 </div>
             </div>
 
@@ -201,11 +250,14 @@
         function adminPoints(type) {
             const phone = document.getElementById('admin-phone').value;
             const points = parseInt(document.getElementById('admin-points').value);
+            const currency = document.getElementById('admin-currency').value;
+
             if (!phone || isNaN(points)) return;
+
             const final = (type === 'UP') ? points : -points;
-            const res = Store.updateUserBalance(phone, final, "تحكم إداري مباشر", Store.user.role);
+            const res = Store.updateUserBalance(phone, final, currency, "تحكم إداري مباشر", Store.user.role);
+
             showResult(res.success ? "تم تحديث الرصيد بنجاح" : res.message, res.success);
-            document.getElementById('user-balance').innerText = Store.user.balance.toLocaleString();
             UI.updateNavbar();
         }
 
@@ -213,6 +265,41 @@
             const phone = document.getElementById('admin-phone').value;
             if (!phone) return;
             const res = Store.activateAgent(phone);
+            showResult(res.message, res.success);
+        }
+
+        function approveDoctor() {
+            const phone = document.getElementById('admin-phone').value;
+            if (!phone) return;
+            const res = Store.approveDoctor(phone);
+            showResult(res.message, res.success);
+        }
+
+        function makeAdmin() {
+            const phone = document.getElementById('admin-phone').value;
+            if (!phone) return;
+            if (!confirm("هل أنت متأكد من منح هذا المستخدم صلاحيات الإدارة الكاملة؟")) return;
+
+            const res = Store.makeAdmin(phone);
+            showResult(res.message, res.success);
+        }
+
+        function editDoctor() {
+            const phone = document.getElementById('manage-doc-phone').value;
+            const spec = document.getElementById('edit-doc-spec').value;
+            const price = document.getElementById('edit-doc-price').value;
+
+            if (!phone) return;
+            const res = Store.editDoctor(phone, spec, price);
+            showResult(res.message, res.success);
+        }
+
+        function deleteDoctor() {
+            const phone = document.getElementById('manage-doc-phone').value;
+            if (!phone) return;
+            if (!confirm("حذف الطبيب سيقوم بإلغاء صلاحياته وإزالته من القائمة. هل أنت متأكد؟")) return;
+
+            const res = Store.deleteDoctor(phone);
             showResult(res.message, res.success);
         }
     </script>

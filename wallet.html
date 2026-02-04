@@ -6,37 +6,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>المحفظة الرقمية - بوابة الخدمات العامة</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/booking.css"> <!-- Reusing booking css for nice cards -->
     <style>
-        .balance-hero {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            padding: 50px;
-            border-radius: 40px;
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .wallet-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 25px;
+            padding: 30px;
             color: white;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease;
         }
 
-        .balance-hero::after {
-            content: "⭐️";
+        .wallet-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .wallet-card.usd {
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+            border: 1px solid #10b981;
+        }
+
+        .wallet-card.syp {
+            background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+            border: 1px solid #3b82f6;
+        }
+
+        .currency-badge {
             position: absolute;
-            top: -20px;
-            right: -20px;
-            font-size: 150px;
-            opacity: 0.05;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 800;
         }
 
-        .transaction-card {
+        .balance-value {
+            font-size: 2.5rem;
+            font-weight: 950;
+            margin: 20px 0;
+            letter-spacing: -1px;
+        }
+
+        .wallet-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex: 1;
+            transition: background 0.3s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tx-list {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .tx-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 20px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(0, 0, 0, 0.02);
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .tx-item:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -46,124 +107,112 @@
     <nav class="glass-nav">
         <a href="index.html" class="logo-container">
             <div class="logo-box">ب</div>
-            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+            <div style="font-weight: 900; font-size: 18px;">المحفظة الرقمية</div>
         </a>
         <div class="nav-links" id="nav-menu">
             <a href="index.html">الرئيسية</a>
             <a href="doctors.html">الأطباء</a>
-            <a href="taxi.html">النقل</a>
             <a href="wallet.html" class="active">المحفظة</a>
         </div>
-        <div id="nav-right" style="display: flex; align-items: center; gap: 15px;"></div>
-        <div class="menu-toggle" id="mobile-toggle">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
+        <div id="nav-right"></div>
+        <div class="menu-toggle" id="mobile-toggle"><span></span><span></span><span></span></div>
     </nav>
 
-    <div class="container" style="max-width: 900px; padding-top: 40px;">
-        <div class="balance-hero">
-            <p style="font-weight: 800; font-size: 1rem; opacity: 0.8; margin-bottom: 15px;">رصيد النقاط الملكية</p>
-            <h1 id="wallet-balance"
-                style="font-size: 4.5rem; font-weight: 950; margin-bottom: 25px; color: var(--gold);">0</h1>
-            <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="topup-btn" onclick="topUp()" class="btn btn-primary"
-                    style="display: none; padding: 15px 40px; border-radius: 20px;">شحن نقاط</button>
-                <button class="btn"
-                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">سحب
-                    أموال</button>
-                <button class="btn"
-                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">تحويل
-                    نقاط</button>
+    <div class="container" style="padding-top: 40px;">
+
+        <div class="text-center" style="margin-bottom: 40px;">
+            <h1 style="font-weight: 900; font-size: 2.5rem;">رصيدك المتوفر</h1>
+            <p style="color: #64748B;">إدارة مستقلة للعملات (الدولار والليرة السورية)</p>
+        </div>
+
+        <div class="wallet-grid">
+            <!-- USD Card -->
+            <div class="wallet-card usd">
+                <div class="currency-badge">USD 🇺🇸</div>
+                <div style="font-size: 0.9rem; opacity: 0.8;">محفظة الدولار</div>
+                <div class="balance-value" id="balance-usd">$0.00</div>
+                <div class="wallet-actions">
+                    <button class="action-btn" onclick="requestDeposit('USD')">📥 إيداع</button>
+                    <button class="action-btn" onclick="requestWithdraw('USD')">📤 سحب</button>
+                </div>
+            </div>
+
+            <!-- SYP Card -->
+            <div class="wallet-card syp">
+                <div class="currency-badge">SYP 🇸🇾</div>
+                <div style="font-size: 0.9rem; opacity: 0.8;">محفظة الليرة</div>
+                <div class="balance-value" id="balance-syp">0 ل.س</div>
+                <div class="wallet-actions">
+                    <button class="action-btn" onclick="requestDeposit('SYP')">📥 إيداع</button>
+                    <button class="action-btn" onclick="requestWithdraw('SYP')">📤 سحب</button>
+                </div>
             </div>
         </div>
 
         <div class="grid grid-2">
-            <div class="card">
-                <h3 style="font-weight: 900; margin-bottom: 25px;">استبدال النقاط</h3>
-                <div class="grid grid-2" style="gap: 15px;">
-                    <div
-                        style="text-align: center; padding: 20px; background: #f0fdf4; border-radius: 20px; border: 1px solid #dcfce7;">
-                        <p style="font-size: 0.7rem; font-weight: 800; color: #16a34a; margin-bottom: 5px;">قيمة النقطة
-                        </p>
-                        <h4 style="font-weight: 900;">1,000 ل.س</h4>
-                    </div>
-                    <div
-                        style="text-align: center; padding: 20px; background: #eff6ff; border-radius: 20px; border: 1px solid #dbeafe;">
-                        <p style="font-size: 0.7rem; font-weight: 800; color: #2563eb; margin-bottom: 5px;">الحد الأدنى
-                        </p>
-                        <h4 style="font-weight: 900;">10 نقاط</h4>
-                    </div>
-                </div>
-                <div
-                    style="margin-top: 25px; padding: 15px; background: #F8FAFC; border-radius: 15px; font-size: 0.8rem; font-weight: 700; color: #64748B;">
-                    💡 يمكنك استخدام النقاط لدفع تكاليف الأطباء، رحلات التاكسي، أو حتى استبدالها نقداً عبر الوكلاء
-                    المعتمدين.
-                </div>
+            <div class="tx-list">
+                <h3 style="font-weight: 900; margin-bottom: 20px;">آخر العمليات (USD) 🇺🇸</h3>
+                <div id="tx-usd-list">لا توجد عمليات</div>
             </div>
-
-            <div class="card">
-                <h3 style="font-weight: 900; margin-bottom: 25px;">سجل النقاط</h3>
-                <div id="tx-content">
-                    <!-- Dynamic Transactions -->
-                </div>
+            <div class="tx-list">
+                <h3 style="font-weight: 900; margin-bottom: 20px;">آخر العمليات (SYP) 🇸🇾</h3>
+                <div id="tx-syp-list">لا توجد عمليات</div>
             </div>
         </div>
+
     </div>
 
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        function renderWallet() {
-            if (!Store.user) return;
-            document.getElementById('wallet-balance').innerText = Store.user.balance.toLocaleString();
-
-            // Show Top Up button only for Agents and Admins
-            if (Store.user.role === 'ADMIN' || Store.user.role === 'AGENT') {
-                document.getElementById('topup-btn').style.display = 'block';
-            }
-
-            const txs = Store.getData('transactions');
-            const container = document.getElementById('tx-content');
-
-            if (txs.length === 0) {
-                container.innerHTML = `<div style="text-align: center; padding: 40px 0; opacity: 0.4;">
-                                        <p style="font-weight: 800;">لا توجد عمليات نقاط حالياً</p>
-                                      </div>`;
-            } else {
-                container.innerHTML = '';
-                txs.forEach(tx => {
-                    const isDebit = tx.amount > 0;
-                    container.innerHTML += `
-                        <div class="transaction-card">
-                            <div>
-                                <p style="font-weight: 900; font-size: 0.85rem;">${tx.title}</p>
-                                <p style="font-size: 0.7rem; color: #64748B; font-weight: 700;">${tx.date}</p>
-                            </div>
-                            <p style="font-weight: 950; color: ${isDebit ? '#dc2626' : '#16a34a'};">
-                                ${isDebit ? '-' : '+'}${Math.abs(tx.amount)}
-                            </p>
-                        </div>
-                    `;
-                });
-            }
-        }
-
-        function topUp() {
-            if (Store.user.role !== 'ADMIN' && Store.user.role !== 'AGENT') {
-                alert("عذراً، شحن الرصيد يتم فقط من خلال الوكلاء المعتمدين. يرجى زيارة أقرب وكيل لشحن حسابك.");
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Store.user) {
+                window.location.href = 'login.html';
                 return;
             }
-            const amount = prompt("أدخل عدد النقاط التي تريد شحنها (للمسؤولين فقط):", "100");
-            if (amount && !isNaN(amount)) {
-                Store.updateUserBalance(Store.user.phone, parseInt(amount), "شحن مباشر (إدارة)", Store.user.role);
-                renderWallet();
-                UI.updateNavbar();
-            }
+            renderWallet();
+        });
+
+        function renderWallet() {
+            // Update Balances
+            document.getElementById('balance-usd').innerText = `$${(Store.user.walletUSD || 0).toLocaleString()}`;
+            document.getElementById('balance-syp').innerText = `${(Store.user.walletSYP || 0).toLocaleString()} ل.س`;
+
+            // Tx Lists
+            const txs = Store.getData('transactions') || [];
+            const usdTx = txs.filter(t => t.userPhone === Store.user.phone && t.currency === 'USD');
+            const sypTx = txs.filter(t => t.userPhone === Store.user.phone && t.currency === 'SYP');
+
+            renderList('tx-usd-list', usdTx, '$');
+            renderList('tx-syp-list', sypTx, ' ل.س');
         }
 
-        document.addEventListener('DOMContentLoaded', renderWallet);
+        function renderList(elId, list, symbol) {
+            const el = document.getElementById(elId);
+            if (list.length === 0) {
+                el.innerHTML = '<p style="color:#cbd5e1; text-align:center;">لا توجد عمليات</p>';
+                return;
+            }
+            el.innerHTML = list.slice(0, 5).map(tx => `
+                <div class="tx-item">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;">${tx.title}</div>
+                        <div style="font-size:0.75rem; color:#94a3b8;">${tx.date}</div>
+                    </div>
+                    <div style="font-weight:800; color:${tx.amount > 0 ? '#16a34a' : '#ef4444'};">
+                        ${tx.amount > 0 ? '+' : ''}${tx.amount.toLocaleString()}${symbol}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function requestDeposit(currency) {
+            alert(`لشحن رصيد ${currency}، يرجى التواصل مع أحد الوكلاء المعتمدين أو زيارة مكتبنا.`);
+        }
+
+        function requestWithdraw(currency) {
+            alert("خدمة السحب متاحة حالياً عبر الوكلاء فقط.");
+        }
     </script>
 </body>
 
