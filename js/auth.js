@@ -370,10 +370,25 @@ const Auth = {
     },
 
     check: () => {
-        const currentPage = window.location.pathname.split("/").pop();
+        const path = window.location.pathname;
+        const page = path.split("/").pop(); // e.g., 'login.html'
+
+        // Define Guest Pages (Pages that don't require login)
         const guestPages = ['index.html', 'login.html', 'register.html', ''];
-        if (!Store.user && !guestPages.includes(currentPage)) {
-            window.location.href = 'login.html';
+
+        if (!Store.user) {
+            // User is NOT logged in
+            if (!guestPages.includes(page)) {
+                // Determine if we are on a known page or just a random sub-path
+                // Simple logic: if restricted page, go to login
+                window.location.href = 'login.html';
+            }
+        } else {
+            // User IS logged in
+            // Redirect away from login/register pages to dashboard
+            if (page === 'login.html' || page === 'register.html') {
+                window.location.href = 'dashboard.html';
+            }
         }
     }
 };
