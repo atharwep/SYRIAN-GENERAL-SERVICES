@@ -18,9 +18,9 @@ const Store = {
 
             // Seed Doctors if not exists
             const seedDoctors = [
-                { id: 1, name: "د. أحمد عبدالله", specialty: "استشاري قلب وأوعية دموية", city: "دمشق", displayPrice: "$40", avatar: "https://ui-avatars.com/api/?name=Ahmed+Abdullah&background=0D8ABC&color=fff" },
-                { id: 2, name: "د. سارة محمد", specialty: "أخصائية طب أطفال", city: "حلب", displayPrice: "150,000 ل.س", avatar: "https://ui-avatars.com/api/?name=Sara+Mohamed&background=E91E63&color=fff" },
-                { id: 3, name: "د. خالد العمر", specialty: "استشاري جلدية", city: "اللاذقية", displayPrice: "$50", avatar: "https://ui-avatars.com/api/?name=Khaled+Omar&background=4CAF50&color=fff" }
+                { id: 1, name: "د. أحمد عبدالله", specialty: "استشاري قلب وأوعية دموية", city: "دمشق", displayPrice: "$40", avatar: "https://ui-avatars.com/api/?name=Ahmed+Abdullah&background=0D8ABC&color=fff", isVerified: true },
+                { id: 2, name: "د. سارة محمد", specialty: "أخصائية طب أطفال", city: "حلب", displayPrice: "150,000 ل.س", avatar: "https://ui-avatars.com/api/?name=Sara+Mohamed&background=E91E63&color=fff", isVerified: true },
+                { id: 3, name: "د. خالد العمر", specialty: "استشاري جلدية", city: "اللاذقية", displayPrice: "$50", avatar: "https://ui-avatars.com/api/?name=Khaled+Omar&background=4CAF50&color=fff", isVerified: true }
             ];
             Store.setData('doctors', seedDoctors);
 
@@ -80,31 +80,38 @@ const Store = {
         return { success: true, message: "تم تفعيل حساب الوكيل بنجاح" };
     },
 
-    approveDoctor: (phone) => {
+    approveDoctor: async (phone) => {
         const users = Store.getUsers();
         const idx = users.findIndex(u => u.phone === phone);
         if (idx === -1) return { success: false, message: "المستخدم غير موجود" };
 
-        users[idx].role = 'DOCTOR';
-        Store.setUsers(users);
+        // Find doctor record
+        const doctors = Store.getData('doctors') || [];
+        const doc = doctors.find(d => d.id === users[idx].id || (d.name.includes(users[idx].name)));
 
-        // Also add to Doctors DB if not exists
-        let doctors = Store.getData('doctors') || []; // Ensure array
-        // Check if doctor exists by ID or similar name logic if ID isn't stable
-        // For this mock, relying on ID is risky if ID=0 etc, but assuming unique IDs from seed
-        if (!doctors.find(d => d.id === users[idx].id)) {
-            doctors.push({
-                id: users[idx].id, // Ensure this matches User ID
-                name: "د. " + users[idx].name,
-                specialty: "عام (تحت التدقيق)",
-                cost: 0,
-                avatar: users[idx].avatar,
-                services: []
-            });
-            Store.setData('doctors', doctors);
+        if (doc) {
+            try {
+                // Call API
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/doctors/${doc.id}/verify`, { method: 'PUT' });
+                if (res.ok) {
+                    // Update Local
+                    users[idx].role = 'DOCTOR';
+                    Store.setUsers(users);
+                    doc.isVerified = true;
+                    Store.setData('doctors', doctors);
+                    return { success: true, message: "تم اعتماد الطبيب وتوثيق حسابه بنجاح ✅" };
+                }
+            } catch (e) { console.error(e); }
         }
 
-        return { success: true, message: "تم اعتماد المستخدم كطبيب بنجاح" };
+        // Fallback local only (if API fails or mock mode)
+        users[idx].role = 'DOCTOR';
+        Store.setUsers(users);
+        if (doc) {
+            doc.isVerified = true;
+            Store.setData('doctors', doctors);
+        }
+        return { success: true, message: "تم اعتماد الطبيب محلياً (فشل الاتصال بالسيرفر)" };
     },
 
     makeAdmin: (phone) => {
@@ -117,28 +124,31 @@ const Store = {
         return { success: true, message: " تمت ترقية المستخدم لمدير عام بنجاح 👑" };
     },
 
-    deleteDoctor: (phone) => {
+    deleteDoctor: async (phone) => {
         const users = Store.getUsers();
         const uIdx = users.findIndex(u => u.phone === phone);
         if (uIdx === -1) return { success: false, message: "المستخدم غير موجود" };
 
-        // Demote Role
+        let doctors = Store.getData('doctors') || [];
+        const dIdx = doctors.findIndex(d => d.id === users[uIdx].id);
+
+        if (dIdx !== -1) {
+            const docId = doctors[dIdx].id;
+            try {
+                await fetch(`${CONFIG.API_BASE_URL}/api/doctors/${docId}`, { method: 'DELETE' });
+            } catch (e) { console.error(e); }
+
+            doctors.splice(dIdx, 1);
+            Store.setData('doctors', doctors);
+        }
+
+        // Demote Role locally
         if (users[uIdx].role === 'DOCTOR') {
             users[uIdx].role = 'USER';
             Store.setUsers(users);
-        } else {
-            return { success: false, message: "هذا الرقم لا يعود لطبيب" };
         }
 
-        // Remove from Doctors DB
-        let doctors = Store.getData('doctors') || [];
-        const dIdx = doctors.findIndex(d => d.id === users[uIdx].id);
-        if (dIdx !== -1) {
-            doctors.splice(dIdx, 1);
-            Store.setData('doctors', doctors);
-            return { success: true, message: "تم حذف الطبيب بنجاح وإلغاء صلاحياته" };
-        }
-        return { success: true, message: "تم إلغاء صلاحية الطبيب (لم يكن في القائمة العامة)" };
+        return { success: true, message: "تم حذف الطبيب بنجاح وإلغاء صلاحياته" };
     },
 
     editDoctor: (phone, spec, price) => {
@@ -200,6 +210,38 @@ const Store = {
             u.name.toLowerCase().includes(q) ||
             u.phone.includes(q)
         ).slice(0, 5); // Return top 5
+    },
+
+    syncDoctors: async () => {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/doctors`);
+            if (response.ok) {
+                const doctors = await response.json();
+                // Merge/Overwrite with server data
+                // We need to map server data format to frontend format if they differ
+                // Server: {id, userId, name, specialty, fee, clinic, sessionDuration, isVerified, city}
+                const mappedDocs = doctors.map(d => ({
+                    id: d.id || d.userId, // Use available ID
+                    name: d.name,
+                    specialty: d.specialty,
+                    city: d.city || 'غير محدد',
+                    clinic: d.clinic,
+                    cost: d.fee,
+                    displayPrice: d.fee + " نقطة", // Format
+                    isVerified: d.isVerified,
+                    // Avatar might not be in DB, check if we need to preserve local or generate
+                    avatar: d.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${d.name}`,
+                    services: []
+                }));
+
+                Store.setData('doctors', mappedDocs);
+                console.log("✅ Doctors synced with server");
+                return mappedDocs;
+            }
+        } catch (e) {
+            console.warn("⚠️ Could not sync doctors with server, using local cache.", e);
+        }
+        return Store.getData('doctors');
     }
 };
 
@@ -263,12 +305,12 @@ const Auth = {
         }
     },
 
-    register: async (name, phone, password, role = 'USER') => {
+    register: async (name, phone, password, role = 'USER', extraData = {}) => {
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, phone, password, role })
+                body: JSON.stringify({ name, phone, password, role, ...extraData })
             });
             const data = await response.json();
             if (response.ok) {
@@ -278,6 +320,29 @@ const Auth = {
                     users.push({ ...data.user, password }); // Password stored locally for demo
                     Store.setUsers(users);
                 }
+
+                // If Doctor, add to local doctors DB as well if not present (Hybrid sync)
+                if (role === 'DOCTOR') {
+                    let doctors = Store.getData('doctors') || [];
+                    if (!doctors.find(d => d.id === data.user.id)) {
+                        doctors.push({
+                            id: data.user.id,
+                            name: "د. " + name,
+                            specialty: extraData.specialty || "عام",
+                            city: extraData.city || "غير محدد",
+                            clinic: extraData.clinic || "",
+                            cost: extraData.price ? parseInt(extraData.price) : 0,
+                            displayPrice: extraData.price ? extraData.price + " نقطة" : "غير محدد",
+                            avatar: data.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+                            isVerified: false, // Server might handle this, but for local consistency
+                            services: [],
+                            certificate: extraData.certificate,
+                            identityId: extraData.identityId
+                        });
+                        Store.setData('doctors', doctors);
+                    }
+                }
+
                 return { success: true, user: data.user, token: data.token };
             } else {
                 return { success: false, message: data.message || "فشل إنشاء الحساب" };
@@ -300,6 +365,27 @@ const Auth = {
             };
             users.push(newUser);
             Store.setUsers(users);
+
+            // Handler for Local Doctor Registration
+            if (role === 'DOCTOR') {
+                let doctors = Store.getData('doctors') || [];
+                doctors.push({
+                    id: newUser.id,
+                    name: "د. " + name,
+                    specialty: extraData.specialty || "عام",
+                    city: extraData.city || "غير محدد",
+                    clinic: extraData.clinic || "",
+                    cost: extraData.price ? parseInt(extraData.price) : 0,
+                    displayPrice: extraData.price ? extraData.price + " نقطة" : "غير محدد",
+                    avatar: newUser.avatar,
+                    isVerified: false, // Requires Admin Approval
+                    services: [],
+                    certificate: extraData.certificate, // Store data for Admin Panel
+                    identityId: extraData.identityId
+                });
+                Store.setData('doctors', doctors);
+            }
+
             return { success: true, user: newUser };
         }
     },
@@ -444,6 +530,21 @@ if (typeof firebase !== 'undefined' && CONFIG.FIREBASE_CONFIG.apiKey !== "AIzaSy
 
 document.addEventListener('DOMContentLoaded', () => {
     Store.init();
+    // Attempt background sync
+    Store.syncDoctors().then(docs => {
+        // If we are on the doctors page, we might want to refresh the grid
+        if (typeof renderDoctors === 'function' && docs) {
+            const verified = docs.filter(d => d.isVerified === true);
+            // We check global variable or just rely on the user to refresh? 
+            // Let's call renderDoctors directly if it exists in scope (doctors.html)
+            renderDoctors(verified);
+        }
+        // If dashboard pending list
+        if (typeof renderPendingDoctors === 'function' && docs) {
+            renderPendingDoctors();
+        }
+    });
+
     Auth.check();
     UI.updateNavbar();
     UI.initResponsive();

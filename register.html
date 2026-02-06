@@ -71,9 +71,77 @@
                     <input type="text" id="phone" class="form-input" placeholder="093xxxxxxx" required>
                 </div>
 
-                <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="reg-password" placeholder="كلمة المرور" required>
+                </div>
+
+                <!-- Doctor Registration Toggle -->
+                <div class="doctor-toggle-container"
+                    style="margin: 15px 0; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 12px;">
+                    <label
+                        style="display: flex; align-items: center; cursor: pointer; gap: 10px; font-weight: 700; color: var(--text-color);">
+                        <input type="checkbox" id="is-doctor-check" onchange="toggleDoctorFields()">
+                        التسجيل كطبيب
+                    </label>
+                </div>
+
+                <!-- Doctor Specific Fields (Hidden by default) -->
+                <div id="doctor-fields" style="display: none; animation: fadeIn 0.3s ease;">
+                    <div class="input-group">
+                        <i class="fas fa-stethoscope"></i>
+                        <select id="doc-specialty"
+                            style="width: 100%; border: none; background: transparent; outline: none; padding: 0 10px;">
+                            <option value="">اختر التخصص...</option>
+                            <option value="عام">طب عام</option>
+                            <option value="قلبية">قلبية</option>
+                            <option value="أطفال">أطفال</option>
+                            <option value="جلدية">جلدية</option>
+                            <option value="أسنان">أسنان</option>
+                            <option value="عيون">عيون</option>
+                            <option value="عظمية">عظمية</option>
+                            <option value="نسائية">نسائية</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <select id="doc-city"
+                            style="width: 100%; border: none; background: transparent; outline: none; padding: 0 10px;">
+                            <option value="">اختر المدينة...</option>
+                            <option value="دمشق">دمشق</option>
+                            <option value="حلب">حلب</option>
+                            <option value="اللاذقية">اللاذقية</option>
+                            <option value="حمص">حمص</option>
+                            <option value="طرطوس">طرطوس</option>
+                            <option value="حماة">حماة</option>
+                            <option value="السويداء">السويداء</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-clinic-medical"></i>
+                        <input type="text" id="doc-clinic" placeholder="اسم العيادة">
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <input type="number" id="doc-price" placeholder="سعر الكشفية (نقطة)">
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <label
+                            style="font-size: 12px; font-weight: 700; color: #64748B; display: block; margin-bottom: 5px;">صورة
+                            الشهادة المهنية</label>
+                        <input type="file" id="doc-cert" accept="image/*" class="form-input" style="padding: 5px;">
+                    </div>
+
+                    <div style="margin-top: 10px; margin-bottom: 15px;">
+                        <label
+                            style="font-size: 12px; font-weight: 700; color: #64748B; display: block; margin-bottom: 5px;">صورة
+                            الهوية الشخصية</label>
+                        <input type="file" id="doc-id" accept="image/*" class="form-input" style="padding: 5px;">
+                    </div>
                 </div>
 
                 <div id="recaptcha-container"></div>
@@ -170,6 +238,24 @@
             document.getElementById(id).classList.add('active');
         }
 
+        function toggleDoctorFields() {
+            const isDoctor = document.getElementById('is-doctor-check').checked;
+            const fields = document.getElementById('doctor-fields');
+            if (isDoctor) {
+                fields.style.display = 'block';
+            } else {
+                fields.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'doctor') {
+                document.getElementById('is-doctor-check').checked = true;
+                toggleDoctorFields();
+            }
+        });
+
         document.getElementById('register-form').addEventListener('submit', async function (e) {
             e.preventDefault();
             const btn = e.target.querySelector('button');
@@ -177,14 +263,34 @@
 
             const name = document.getElementById('name').value;
             const phone = document.getElementById('phone').value;
-            const password = document.getElementById('password').value;
+            const password = document.getElementById('reg-password').value;
+
+            const isDoctor = document.getElementById('is-doctor-check').checked;
+            let role = 'USER';
+            let extraData = {};
+
+            if (isDoctor) {
+                role = 'DOCTOR';
+                extraData = {
+                    specialty: document.getElementById('doc-specialty').value,
+                    city: document.getElementById('doc-city').value,
+                    clinic: document.getElementById('doc-clinic').value,
+                    price: document.getElementById('doc-price').value,
+                    // Note: File uploads would typically need FormData. 
+                    // For this environment, we might skip actual file upload or standard handling 
+                    // since Auth.register currently expects JSON. 
+                    // We'll pass filenames or placeholder for now.
+                    certificate: document.getElementById('doc-cert').value,
+                    identityId: document.getElementById('doc-id').value
+                };
+            }
 
             btn.innerText = 'جاري المعالجة...';
             btn.disabled = true;
 
             try {
-                // First call register to check if user exists and create entry
-                const res = await Auth.register(name, phone, password);
+                // Modified to pass role and extraData
+                const res = await Auth.register(name, phone, password, role, extraData);
 
                 if (res.success) {
                     pendingUser = res.user;
@@ -216,6 +322,7 @@
                     btn.disabled = false;
                 }
             } catch (err) {
+                console.error(err);
                 showError("حدث خطأ غير متوقع");
                 btn.innerText = originalText;
                 btn.disabled = false;

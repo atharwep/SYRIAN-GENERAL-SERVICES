@@ -379,14 +379,73 @@ body {
 }
 
 /* Sidebar Animation Logic */
-.menu-toggle.active span:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
-}
-
-.menu-toggle.active span:nth-child(2) {
-    opacity: 0;
-}
-
 .menu-toggle.active span:nth-child(3) {
     transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* =========================================
+   Interactive Click Effects & Animations
+   ========================================= */
+
+/* Global Bounce Effect for Buttons, Links, and Icons on Click */
+button:active,
+.btn:active,
+a:active,
+.icon:active,
+.clickable:active {
+    transform: scale(0.92) !important;
+    transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Specific Pulse Animation for Icons on Hover */
+.icon-box,
+.stat-card .icon,
+.nav-icon {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+}
+
+.icon-box:hover,
+.stat-card:hover .icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Ripple Effect Setup (Requires JS or simple CSS hack) */
+.btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease-out, height 0.3s ease-out;
+}
+
+.btn:active::after {
+    width: 200%;
+    height: 200%;
+    transition: 0s;
+}
+
+/* =========================================
+   Page Separation Utilities
+   ========================================= */
+/* Use these classes to scope page-specific changes safely */
+.page-dashboard .card {
+    border-left: 4px solid var(--gold);
+}
+
+.page-doctors .card {
+    border-left: 4px solid var(--primary);
+}
+
+.page-wallet .card {
+    border-left: 4px solid #10b981;
 }

@@ -94,7 +94,7 @@
                 Store.init();
             }
             // Re-fetch
-            allDoctors = Store.getData('doctors');
+            allDoctors = Store.getData('doctors').filter(d => d.isVerified === true);
             renderDoctors(allDoctors);
         });
 

@@ -145,6 +145,14 @@
 
                     <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
 
+                    <!-- Pending Doctors -->
+                    <div id="pending-doctors-section" style="display: none;">
+                        <h4 style="color: #f59e0b; margin-bottom: 15px; font-weight: 900;">⏳ طلبات انضمام أطباء (معلقة)
+                        </h4>
+                        <div id="pending-doctors-list"></div>
+                        <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+                    </div>
+
                     <!-- Doctor Management -->
                     <h4 style="color: var(--gold); margin-bottom: 15px; font-weight: 900;">🏥 إدارة الأطباء</h4>
                     <div
@@ -250,34 +258,8 @@
 
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (Store.user) {
-                document.getElementById('user-name').innerText = Store.user.name;
-                document.getElementById('user-balance').innerText = Store.user.balance.toLocaleString();
-                document.getElementById('user-avatar').src = Store.user.avatar;
-                document.getElementById('role-badge').innerText = Store.user.role;
-
-                if (Store.user.role === 'ADMIN') document.getElementById('admin-section').style.display = 'block';
-                if (Store.user.role === 'ADMIN' || Store.user.role === 'AGENT') {
-                    document.getElementById('extra-links').innerHTML = `<a href="agents.html" class="side-link">🏢 بوابة الوكلاء</a>`;
-                }
-
-                // Activities list
-                const txs = Store.getData('transactions');
-                if (txs.length > 0) {
-                    const list = document.getElementById('activities-list');
-                    list.innerHTML = '';
-                    txs.slice(0, 5).forEach(tx => {
-                        list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #f8fafc; font-size:0.8rem; font-weight:800;">
-                            <span>${tx.title}</span>
-                            <span style="color:${tx.amount > 0 ? 'red' : 'green'}">${tx.amount > 0 ? '-' : '+'}${Math.abs(tx.amount)}</span>
-                        </div>`;
-                    });
-                }
-            }
-        });
-
         function showResult(text, isSuccess) {
             const status = document.getElementById('admin-status');
             status.style.display = 'block';
@@ -286,73 +268,27 @@
             status.innerText = text;
         }
 
+        // Keeping these specific Admin Actions here or move to dashboard.js later
+        // They are bound to HTML onclicks directly. Ideally should be in dashboard.js or auth.js
+        // For now, keeping them global to avoid breakage until full migration.
+
         function adminPoints(type) {
             const phone = document.getElementById('admin-phone').value;
             const points = parseInt(document.getElementById('admin-points').value);
             const currency = document.getElementById('admin-currency').value;
-
             if (!phone || isNaN(points)) return;
-
             const final = (type === 'UP') ? points : -points;
             const res = Store.updateUserBalance(phone, final, currency, "تحكم إداري مباشر", Store.user.role);
-
             showResult(res.success ? "تم تحديث الرصيد بنجاح" : res.message, res.success);
             UI.updateNavbar();
         }
 
-        function activateAgent() {
-            const phone = document.getElementById('admin-phone').value;
-            if (!phone) return;
-            const res = Store.activateAgent(phone);
-            showResult(res.message, res.success);
-        }
-
-        function approveDoctor() {
-            const phone = document.getElementById('admin-phone').value;
-            if (!phone) return;
-            const res = Store.approveDoctor(phone);
-            showResult(res.message, res.success);
-        }
-
-        function makeAdmin() {
-            const phone = document.getElementById('admin-phone').value;
-            if (!phone) return;
-            if (!confirm("هل أنت متأكد من منح هذا المستخدم صلاحيات الإدارة الكاملة؟")) return;
-
-            const res = Store.makeAdmin(phone);
-            showResult(res.message, res.success);
-        }
-
-        function editDoctor() {
-            const phone = document.getElementById('manage-doc-phone').value;
-            const spec = document.getElementById('edit-doc-spec').value;
-            const price = document.getElementById('edit-doc-price').value;
-
-            if (!phone) return;
-            const res = Store.editDoctor(phone, spec, price);
-            showResult(res.message, res.success);
-        }
-
-        function deleteDoctor() {
-            const phone = document.getElementById('manage-doc-phone').value;
-            if (!phone) return;
-            if (!confirm("حذف الطبيب سيقوم بإلغاء صلاحياته وإزالته من القائمة. هل أنت متأكد؟")) return;
-
-            const res = Store.deleteDoctor(phone);
-            showResult(res.message, res.success);
-        }
-
+        // Search User UI Helper
         function searchUserUI() {
             const query = document.getElementById('user-search-input').value;
             const resultsDiv = document.getElementById('user-search-results');
-
-            if (query.length < 2) {
-                resultsDiv.style.display = 'none';
-                return;
-            }
-
+            if (query.length < 2) { resultsDiv.style.display = 'none'; return; }
             const results = Store.searchUsers(query);
-
             if (results.length > 0) {
                 resultsDiv.style.display = 'block';
                 resultsDiv.innerHTML = results.map(u => `
@@ -375,29 +311,6 @@
             document.getElementById('manage-doc-phone').value = phone;
             document.getElementById('user-search-input').value = `${name} (${phone})`;
             document.getElementById('user-search-results').style.display = 'none';
-        }
-
-        function addNewDoctor() {
-            const name = document.getElementById('new-doc-name').value;
-            const phone = document.getElementById('new-doc-phone').value;
-            const pass = document.getElementById('new-doc-pass').value;
-            const spec = document.getElementById('new-doc-spec').value;
-            const city = document.getElementById('new-doc-city').value;
-            const price = document.getElementById('new-doc-price').value;
-
-            if (!name || !phone || !pass || !spec) {
-                showResult("يرجى تعبئة الحقول الأساسية (الاسم، الهاتف، كلمة المرور، التخصص)", false);
-                return;
-            }
-
-            const res = Store.addDoctor(name, phone, pass, spec, price, city);
-            showResult(res.message, res.success);
-
-            if (res.success) {
-                // Clear inputs
-                document.querySelectorAll('#new-doc-name, #new-doc-phone, #new-doc-pass, #new-doc-spec, #new-doc-city, #new-doc-price')
-                    .forEach(inp => inp.value = '');
-            }
         }
     </script>
 </body>
