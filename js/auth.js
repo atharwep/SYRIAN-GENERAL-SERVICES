@@ -80,38 +80,34 @@ const Store = {
         return { success: true, message: "تم تفعيل حساب الوكيل بنجاح" };
     },
 
-    approveDoctor: async (phone) => {
+    approveDoctor: async (phoneOrId) => {
         const users = Store.getUsers();
-        const idx = users.findIndex(u => u.phone === phone);
-        if (idx === -1) return { success: false, message: "المستخدم غير موجود" };
+        const uIdx = users.findIndex(u => u.phone == phoneOrId || u.id == phoneOrId);
+        if (uIdx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        const userId = users[uIdx].id;
+        const userPhone = users[uIdx].phone;
 
         // Find doctor record
-        const doctors = Store.getData('doctors') || [];
-        const doc = doctors.find(d => d.id === users[idx].id || (d.name.includes(users[idx].name)));
+        let doctors = Store.getData('doctors') || [];
+        const dIdx = doctors.findIndex(d => d.id == userId || d.phone == userPhone || d.id == phoneOrId || d.phone == phoneOrId);
 
-        if (doc) {
+        if (dIdx !== -1) {
             try {
-                // Call API
-                const res = await fetch(`${CONFIG.API_BASE_URL}/api/doctors/${doc.id}/verify`, { method: 'PUT' });
-                if (res.ok) {
-                    // Update Local
-                    users[idx].role = 'DOCTOR';
-                    Store.setUsers(users);
-                    doc.isVerified = true;
-                    Store.setData('doctors', doctors);
-                    return { success: true, message: "تم اعتماد الطبيب وتوثيق حسابه بنجاح ✅" };
-                }
-            } catch (e) { console.error(e); }
+                // Call API (Optional fallback)
+                await fetch(`${CONFIG.API_BASE_URL}/api/doctors/${doctors[dIdx].id}/verify`, { method: 'PUT' });
+            } catch (e) { console.error("API Error in Verify:", e); }
+
+            // Update Local
+            users[uIdx].role = 'DOCTOR';
+            Store.setUsers(users);
+
+            doctors[dIdx].isVerified = true;
+            Store.setData('doctors', doctors);
+            return { success: true, message: "تم اعتماد الطبيب وتوثيق حسابه بنجاح ✅" };
         }
 
-        // Fallback local only (if API fails or mock mode)
-        users[idx].role = 'DOCTOR';
-        Store.setUsers(users);
-        if (doc) {
-            doc.isVerified = true;
-            Store.setData('doctors', doctors);
-        }
-        return { success: true, message: "تم اعتماد الطبيب محلياً (فشل الاتصال بالسيرفر)" };
+        return { success: false, message: "لم يتم العثور على سجل بيانات الطبيب الملحق بهذا الرقم" };
     },
 
     makeAdmin: (phone) => {
@@ -124,31 +120,30 @@ const Store = {
         return { success: true, message: " تمت ترقية المستخدم لمدير عام بنجاح 👑" };
     },
 
-    deleteDoctor: async (phone) => {
+    deleteDoctor: async (phoneOrId) => {
         const users = Store.getUsers();
-        const uIdx = users.findIndex(u => u.phone === phone);
-        if (uIdx === -1) return { success: false, message: "المستخدم غير موجود" };
+        const uIdx = users.findIndex(u => u.phone == phoneOrId || u.id == phoneOrId);
 
         let doctors = Store.getData('doctors') || [];
-        const dIdx = doctors.findIndex(d => d.id === users[uIdx].id);
+        const dIdx = doctors.findIndex(d => d.id == phoneOrId || d.phone == phoneOrId || (uIdx !== -1 && d.id === users[uIdx].id));
 
         if (dIdx !== -1) {
             const docId = doctors[dIdx].id;
             try {
                 await fetch(`${CONFIG.API_BASE_URL}/api/doctors/${docId}`, { method: 'DELETE' });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("API Error in Delete:", e); }
 
             doctors.splice(dIdx, 1);
             Store.setData('doctors', doctors);
         }
 
-        // Demote Role locally
-        if (users[uIdx].role === 'DOCTOR') {
+        // Demote Role locally if user exists
+        if (uIdx !== -1) {
             users[uIdx].role = 'USER';
             Store.setUsers(users);
         }
 
-        return { success: true, message: "تم حذف الطبيب بنجاح وإلغاء صلاحياته" };
+        return { success: true, message: "تم رفض الطلب وإزالة سجل البيانات بنجاح" };
     },
 
     editDoctor: (phone, spec, price) => {
@@ -328,13 +323,14 @@ const Auth = {
                         doctors.push({
                             id: data.user.id,
                             name: "د. " + name,
+                            phone: phone,
                             specialty: extraData.specialty || "عام",
                             city: extraData.city || "غير محدد",
                             clinic: extraData.clinic || "",
                             cost: extraData.price ? parseInt(extraData.price) : 0,
                             displayPrice: extraData.price ? extraData.price + " نقطة" : "غير محدد",
                             avatar: data.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-                            isVerified: false, // Server might handle this, but for local consistency
+                            isVerified: false,
                             services: [],
                             certificate: extraData.certificate,
                             identityId: extraData.identityId
@@ -372,6 +368,7 @@ const Auth = {
                 doctors.push({
                     id: newUser.id,
                     name: "د. " + name,
+                    phone: phone,
                     specialty: extraData.specialty || "عام",
                     city: extraData.city || "غير محدد",
                     clinic: extraData.clinic || "",
@@ -511,15 +508,18 @@ const UI = {
         if (Store.user) {
             navRight.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="user-info-nav" style="text-align: left;">
-                        <p style="font-size: 11px; font-weight: 800; color: var(--text-muted);">👋 مرحباً، ${Store.user.name}</p>
-                        <p style="font-size: 11px; font-weight: 900; color: #10b981;">
-                            $${(Store.user.balanceUSD || 0).toLocaleString()} | 
-                            ${(Store.user.balanceSYP || 0).toLocaleString()} ل.س
-                        </p>
-                    </div>
-                    <img src="${Store.user.avatar}" style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold);">
-                    <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 6px 10px; font-size: 10px;">خروج</button>
+                    <a href="profile.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+                        <div class="user-info-nav" style="text-align: left;">
+                            <p style="font-size: 11px; font-weight: 800; color: #64748B;">👋 مرحباً، ${Store.user.name}</p>
+                            <p style="font-size: 11px; font-weight: 900; color: #10b981;">
+                                $${(Store.user.balanceUSD || 0).toLocaleString()} | 
+                                ${(Store.user.balanceSYP || 0).toLocaleString()} ل.س
+                            </p>
+                        </div>
+                        <img src="${Store.user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + Store.user.name}" 
+                             style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold); background: #FFF;">
+                    </a>
+                    <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 6px 10px; font-size: 10px; background: rgba(0,0,0,0.05);">خروج</button>
                 </div>
             `;
         } else {
