@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم - بوابة الخدمات العامة</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/notifications.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .sidebar {
             background: white;
@@ -231,19 +233,22 @@
                 </div>
             </div>
 
-            <div class="grid grid-2" style="margin-top: 30px;">
-                <div class="stat-card">
-                    <div style="font-size: 30px;">⭐️</div>
-                    <div>
-                        <p style="font-size: 0.75rem; font-weight: 800; color: #64748B;">الرصيد الحالي</p>
-                        <h4 id="user-balance" style="font-size: 1.5rem; font-weight: 950; color: var(--gold);">0</h4>
+            <div class="grid grid-2" style="margin-top: 30px; gap: 15px;">
+                <div class="stat-card" style="display: block; padding: 20px;">
+                    <p style="font-size: 0.7rem; font-weight: 800; color: #64748B; margin-bottom: 5px;">رصيد الليرة
+                        السورية</p>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px;">🇸🇾</div>
+                        <h4 id="user-balance-syp" style="font-size: 1.2rem; font-weight: 950; color: var(--gold);">0
+                        </h4>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div style="font-size: 30px;">🛡️</div>
-                    <div>
-                        <p style="font-size: 0.75rem; font-weight: 800; color: #64748B;">حالة الأمان</p>
-                        <h4 style="font-size: 1rem; font-weight: 950; color: #16a34a;">محمي برمز SMS</h4>
+                <div class="stat-card" style="display: block; padding: 20px;">
+                    <p style="font-size: 0.7rem; font-weight: 800; color: #64748B; margin-bottom: 5px;">رصيد الدولار ($)
+                    </p>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px;">🇺🇸</div>
+                        <h4 id="user-balance-usd" style="font-size: 1.2rem; font-weight: 950; color: #3b82f6;">0</h4>
                     </div>
                 </div>
             </div>
@@ -258,6 +263,7 @@
 
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
         function showResult(text, isSuccess) {

@@ -11,8 +11,8 @@ const Store = {
     init: () => {
         if (!localStorage.getItem('wusul_db_init')) {
             const seedUsers = [
-                { id: 1, name: "إدارة النظام", phone: "0936020439", password: "202025", role: "ADMIN", walletUSD: 1000, walletSYP: 15000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin" },
-                { id: 2, name: "وكيل معتمد", phone: "0900000000", password: "agent", role: "AGENT", walletUSD: 500, walletSYP: 5000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=agent1" }
+                { id: 1, name: "إدارة النظام", phone: "0936020439", password: "202025", role: "ADMIN", balanceUSD: 1000, balanceSYP: 15000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin" },
+                { id: 2, name: "وكيل معتمد", phone: "0900000000", password: "agent", role: "AGENT", balanceUSD: 500, balanceSYP: 5000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=agent1" }
             ];
             Store.setUsers(seedUsers);
 
@@ -39,13 +39,13 @@ const Store = {
         }
 
         // Initialize wallets if missing (migration)
-        if (users[userIndex].walletUSD === undefined) users[userIndex].walletUSD = 0;
-        if (users[userIndex].walletSYP === undefined) users[userIndex].walletSYP = 0;
+        if (users[userIndex].balanceUSD === undefined) users[userIndex].balanceUSD = 0;
+        if (users[userIndex].balanceSYP === undefined) users[userIndex].balanceSYP = 0;
 
         if (currency === 'USD') {
-            users[userIndex].walletUSD += amount;
+            users[userIndex].balanceUSD += amount;
         } else {
-            users[userIndex].walletSYP += amount;
+            users[userIndex].balanceSYP += amount;
         }
 
         Store.setUsers(users);
@@ -67,7 +67,7 @@ const Store = {
             localStorage.setItem('wusul_user', JSON.stringify(Store.user));
         }
 
-        return { success: true, newBalance: currency === 'USD' ? users[userIndex].walletUSD : users[userIndex].walletSYP };
+        return { success: true, newBalance: currency === 'USD' ? users[userIndex].balanceUSD : users[userIndex].balanceSYP };
     },
 
     activateAgent: (phone) => {
@@ -433,6 +433,8 @@ const Auth = {
     },
 
     finalizeLogin: (user, token = null) => {
+        // Ensure balance fields are mapped if they datang with different names from backend
+        // Backend returns balanceSYP and balanceUSD. Store expects these too now.
         localStorage.setItem('wusul_user', JSON.stringify(user));
         if (token) localStorage.setItem('wusul_token', token);
         Store.user = user;
@@ -476,6 +478,17 @@ const Auth = {
                 window.location.href = 'dashboard.html';
             }
         }
+    },
+
+    findUserByPhone: async (phone) => {
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/wallet/find-user/${phone}`);
+            if (res.ok) return await res.json();
+            return null;
+        } catch (e) {
+            console.error("Lookup error:", e);
+            return null;
+        }
     }
 };
 
@@ -500,7 +513,10 @@ const UI = {
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div class="user-info-nav" style="text-align: left;">
                         <p style="font-size: 11px; font-weight: 800; color: var(--text-muted);">👋 مرحباً، ${Store.user.name}</p>
-                        <p style="font-size: 11px; font-weight: 900; color: #10b981;">$${(Store.user.walletUSD || 0).toLocaleString()} | ${(Store.user.walletSYP || 0).toLocaleString()} ل.س</p>
+                        <p style="font-size: 11px; font-weight: 900; color: #10b981;">
+                            $${(Store.user.balanceUSD || 0).toLocaleString()} | 
+                            ${(Store.user.balanceSYP || 0).toLocaleString()} ل.س
+                        </p>
                     </div>
                     <img src="${Store.user.avatar}" style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold);">
                     <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 6px 10px; font-size: 10px;">خروج</button>

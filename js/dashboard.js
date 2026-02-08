@@ -12,7 +12,8 @@ const Dashboard = {
 
     renderUserInfo: () => {
         document.getElementById('user-name').innerText = Store.user.name;
-        document.getElementById('user-balance').innerText = (Store.user.walletUSD || 0).toLocaleString();
+        document.getElementById('user-balance-syp').innerText = (Store.user.balanceSYP || 0).toLocaleString() + " ل.س";
+        document.getElementById('user-balance-usd').innerText = "$" + (Store.user.balanceUSD || 0).toLocaleString();
         document.getElementById('user-avatar').src = Store.user.avatar;
         document.getElementById('role-badge').innerText = Store.user.role;
 
@@ -51,19 +52,23 @@ const Dashboard = {
 
         list.innerHTML = pending.map(d => {
             return `
-            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 15px; border-radius: 15px; margin-bottom: 15px;">
-                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 10px;">
-                    <img src="${d.avatar}" style="width: 50px; height: 50px; border-radius: 15px;">
-                    <div>
-                        <h4 style="color: white; font-size: 1rem; margin-bottom: 2px;">${d.name}</h4>
-                        <p style="color: #94a3b8; font-size: 0.8rem;">${d.specialty} | ${d.city || '?'}</p>
-                        <p style="color: #94a3b8; font-size: 0.8rem;">${d.id} (Ref: Phone)</p>
+            <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 25px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 15px;">
+                    <img src="${d.avatar}" style="width: 60px; height: 60px; border-radius: 18px; border: 2px solid var(--gold);">
+                    <div style="flex: 1;">
+                        <h4 style="color: white; font-size: 1.1rem; margin: 0 0 5px 0; font-weight: 900;">${d.name}</h4>
+                        <p style="color: #94a3b8; font-size: 0.8rem; margin: 0; font-weight: 700;">${d.specialty} | ${d.city}</p>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 12px;">
+                            ${d.certificate ? `<a href="${d.certificate}" target="_blank" style="font-size: 10px; background: rgba(197, 160, 33, 0.1); color: var(--gold); padding: 5px 10px; border-radius: 8px; text-decoration: none; border: 1px solid var(--border-rgba); font-weight: 800;"><i class="fas fa-file-medical"></i> عرض الشهادة</a>` : ''}
+                            ${d.identityId ? `<a href="${d.identityId}" target="_blank" style="font-size: 10px; background: rgba(255, 255, 255, 0.05); color: #FFF; padding: 5px 10px; border-radius: 8px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1); font-weight: 800;"><i class="fas fa-id-card"></i> عرض الهوية</a>` : ''}
+                        </div>
                     </div>
                 </div>
                 
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="Auth.approveDoctor('${d.id}')" class="btn" style="flex: 1; background: #16a34a; color: white; padding: 8px; font-size: 0.8rem;">قبول وتوثيق ✅</button>
-                    <button onclick="Auth.deleteDoctor('${d.id}')" class="btn" style="flex: 1; background: #dc2626; color: white; padding: 8px; font-size: 0.8rem;">رفض ❌</button>
+                    <button onclick="handleDoctorApproval('${d.phone || d.id}', true)" class="btn" style="flex: 1.5; background: #16a34a; color: white; padding: 12px; font-size: 0.85rem; font-weight: 900; border-radius: 15px;">قبول واعتماد ✅</button>
+                    <button onclick="handleDoctorApproval('${d.phone || d.id}', false)" class="btn" style="flex: 1; background: #dc2626; color: white; padding: 12px; font-size: 0.85rem; font-weight: 900; border-radius: 15px;">رفض الطلب ❌</button>
                 </div>
             </div>
             `;
@@ -79,11 +84,23 @@ window.activateAgent = () => {
     showResult(res.message, res.success);
 };
 
-window.approveDoctor = () => {
-    const phone = document.getElementById('admin-phone').value;
-    if (!phone) return;
-    const res = Store.approveDoctor(phone);
-    showResult(res.message, res.success);
+window.handleDoctorApproval = async (idOrPhone, isApproved) => {
+    let res;
+    if (isApproved) {
+        res = await Store.approveDoctor(idOrPhone);
+    } else {
+        res = await Store.deleteDoctor(idOrPhone);
+    }
+
+    if (typeof showResult === 'function') {
+        showResult(res.message, res.success);
+    } else {
+        alert(res.message);
+    }
+
+    if (res.success) {
+        Dashboard.renderPendingDoctors();
+    }
 };
 
 window.makeAdmin = () => {

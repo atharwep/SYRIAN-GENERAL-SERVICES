@@ -4,214 +4,738 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المحفظة الرقمية - بوابة الخدمات العامة</title>
+    <title>المحفظة الملكية - بوابة الخدمات العامة</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/booking.css"> <!-- Reusing booking css for nice cards -->
+    <link rel="stylesheet" href="css/notifications.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        .wallet-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
+        :root {
+            --gold-main: #C5A021;
+            --gold-light: #E8D081;
+            --gold-dark: #8B6F14;
+            --bg-dark: #0A0A0B;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border-rgba: rgba(197, 160, 33, 0.2);
         }
 
-        .wallet-card {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border-radius: 25px;
-            padding: 30px;
+        body {
+            background-color: var(--bg-dark);
             color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .aura {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            filter: blur(120px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .aura-gold {
+            background: var(--gold-main);
+            top: -100px;
+            left: -100px;
+        }
+
+        .aura-purple {
+            background: #7C3AED;
+            bottom: -100px;
+            right: -100px;
+        }
+
+        .header-section {
+            padding: 2rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-btn {
+            width: 45px;
+            height: 45px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-rgba);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            border-color: var(--gold-main);
+            transform: translateX(5px);
+        }
+
+        .royal-title {
+            text-align: center;
+        }
+
+        .royal-title h1 {
+            margin: 0;
+            font-weight: 900;
+            font-size: 1.8rem;
+            background: linear-gradient(to bottom, #FFF, var(--gold-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .royal-title p {
+            margin: 2px 0 0;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            font-weight: 700;
+        }
+
+        .currency-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .currency-card {
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            border-radius: 25px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
-        .wallet-card:hover {
-            transform: translateY(-5px);
+        .currency-card.active {
+            background: rgba(197, 160, 33, 0.08);
+            border-color: var(--gold-main);
+            box-shadow: 0 0 30px rgba(197, 160, 33, 0.15);
         }
 
-        .wallet-card.usd {
-            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
-            border: 1px solid #10b981;
-        }
-
-        .wallet-card.syp {
-            background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
-            border: 1px solid #3b82f6;
-        }
-
-        .currency-badge {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 15px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 800;
-        }
-
-        .balance-value {
-            font-size: 2.5rem;
-            font-weight: 950;
-            margin: 20px 0;
-            letter-spacing: -1px;
-        }
-
-        .wallet-actions {
+        .card-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 18px;
             display: flex;
-            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 900;
+            transition: transform 0.3s;
         }
 
-        .action-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 0.9rem;
+        .currency-card:hover .card-icon {
+            transform: scale(1.1);
+        }
+
+        .icon-syp {
+            background: rgba(197, 160, 33, 0.2);
+            color: var(--gold-main);
+        }
+
+        .icon-usd {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .card-info {
             flex: 1;
-            transition: background 0.3s;
+            margin-right: 15px;
         }
 
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+        .card-info h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 900;
         }
 
-        .tx-list {
-            background: white;
+        .card-info p {
+            margin: 2px 0 0;
+            font-size: 0.7rem;
+            color: #71717A;
+            font-weight: 700;
+        }
+
+        .card-balance {
+            text-align: left;
+        }
+
+        .card-balance h4 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 950;
+        }
+
+        /* Detail Section */
+        .detail-view {
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 0 1rem;
+            display: none;
+        }
+
+        .detail-view.active {
+            display: block;
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-balance-card {
+            background: linear-gradient(135deg, rgba(197, 160, 33, 0.15) 0%, rgba(10, 10, 11, 0.5) 100%);
+            border: 1px solid var(--border-rgba);
+            border-radius: 40px;
+            padding: 40px;
+            position: relative;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .main-balance-card h2 {
+            font-size: 3.5rem;
+            font-weight: 950;
+            margin: 10px 0;
+            letter-spacing: -2px;
+            background: linear-gradient(to bottom, #FFF, var(--gold-main));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .p-btn {
+            padding: 18px;
             border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            border: none;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .tx-item {
+        .btn-fill {
+            background: var(--gold-main);
+            color: #000;
+        }
+
+        .btn-fill:hover {
+            background: var(--gold-light);
+            transform: translateY(-3px);
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.03);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--gold-main);
+        }
+
+        /* Transactions */
+        .history-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 15px;
+            padding: 0 10px;
         }
 
-        .tx-item:last-child {
-            border-bottom: none;
+        .history-title h3 {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--gold-main);
+        }
+
+        .tx-item {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: 0.3s;
+        }
+
+        .tx-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tx-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tx-type-plus {
+            background: rgba(0, 217, 165, 0.1);
+            color: #00D9A5;
+        }
+
+        .tx-type-minus {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+        }
+
+        .tx-info {
+            flex: 1;
+        }
+
+        .tx-info h5 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .tx-info p {
+            margin: 2px 0 0;
+            font-size: 0.65rem;
+            color: #52525B;
+            font-weight: 600;
+        }
+
+        .tx-amount {
+            text-align: left;
+        }
+
+        .tx-amount .val {
+            font-weight: 900;
+            font-size: 1rem;
+        }
+
+        .tx-amount .status {
+            font-size: 0.5rem;
+            text-transform: uppercase;
+            color: #52525B;
+            display: block;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #0F1015;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 40px;
+            border: 1px solid var(--border-rgba);
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 1);
+        }
+
+        .form-label {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #666;
+            margin-bottom: 10px;
+            display: block;
+            padding: 0 10px;
+        }
+
+        .p-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            padding: 18px;
+            color: white;
+            font-weight: 700;
+            outline: none;
+            transition: 0.3s;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        .p-input:focus {
+            border-color: var(--gold-main);
+            background: rgba(197, 160, 33, 0.05);
+        }
+
+        .verified-badge {
+            background: rgba(197, 160, 33, 0.1);
+            border: 1px solid var(--border-rgba);
+            padding: 10px 15px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .btn-close {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        @media (min-width: 1024px) {
+            .wallet-screen {
+                display: grid;
+                grid-template-columns: 400px 1fr;
+                gap: 40px;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding-top: 40px;
+            }
+
+            .currency-stack {
+                margin: 0;
+                padding: 0;
+            }
+
+            .detail-view {
+                margin: 0;
+                display: block;
+            }
         }
     </style>
 </head>
 
 <body>
+    <div class="aura aura-gold"></div>
+    <div class="aura aura-purple"></div>
 
-    <nav class="glass-nav">
-        <a href="index.html" class="logo-container">
-            <div class="logo-box">ب</div>
-            <div style="font-weight: 900; font-size: 18px;">المحفظة الرقمية</div>
-        </a>
-        <div class="nav-links" id="nav-menu">
-            <a href="index.html">الرئيسية</a>
-            <a href="doctors.html">الأطباء</a>
-            <a href="wallet.html" class="active">المحفظة</a>
+    <div class="header-section">
+        <a href="index.html" class="back-btn"><i class="fas fa-chevron-right"></i></a>
+        <div class="royal-title">
+            <h1>المحفظة الملكية</h1>
+            <p>Royal Digital Wallet</p>
         </div>
-        <div id="nav-right"></div>
-        <div class="menu-toggle" id="mobile-toggle"><span></span><span></span><span></span></div>
-    </nav>
-
-    <div class="container" style="padding-top: 40px;">
-
-        <div class="text-center" style="margin-bottom: 40px;">
-            <h1 style="font-weight: 900; font-size: 2.5rem;">رصيدك المتوفر</h1>
-            <p style="color: #64748B;">إدارة مستقلة للعملات (الدولار والليرة السورية)</p>
-        </div>
-
-        <div class="wallet-grid">
-            <!-- USD Card -->
-            <div class="wallet-card usd">
-                <div class="currency-badge">USD 🇺🇸</div>
-                <div style="font-size: 0.9rem; opacity: 0.8;">محفظة الدولار</div>
-                <div class="balance-value" id="balance-usd">$0.00</div>
-                <div class="wallet-actions">
-                    <button class="action-btn" onclick="requestDeposit('USD')">📥 إيداع</button>
-                    <button class="action-btn" onclick="requestWithdraw('USD')">📤 سحب</button>
-                </div>
-            </div>
-
-            <!-- SYP Card -->
-            <div class="wallet-card syp">
-                <div class="currency-badge">SYP 🇸🇾</div>
-                <div style="font-size: 0.9rem; opacity: 0.8;">محفظة الليرة</div>
-                <div class="balance-value" id="balance-syp">0 ل.س</div>
-                <div class="wallet-actions">
-                    <button class="action-btn" onclick="requestDeposit('SYP')">📥 إيداع</button>
-                    <button class="action-btn" onclick="requestWithdraw('SYP')">📤 سحب</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-2">
-            <div class="tx-list">
-                <h3 style="font-weight: 900; margin-bottom: 20px;">آخر العمليات (USD) 🇺🇸</h3>
-                <div id="tx-usd-list">لا توجد عمليات</div>
-            </div>
-            <div class="tx-list">
-                <h3 style="font-weight: 900; margin-bottom: 20px;">آخر العمليات (SYP) 🇸🇾</h3>
-                <div id="tx-syp-list">لا توجد عمليات</div>
-            </div>
-        </div>
-
+        <div class="back-btn"><i class="fas fa-shield-alt" style="color: var(--gold-main);"></i></div>
     </div>
+
+    <div class="wallet-screen">
+        <div class="currency-stack">
+            <div class="currency-card active" onclick="switchCurrency('SYP')">
+                <div class="card-icon icon-syp">ل.س</div>
+                <div class="card-info">
+                    <h3>الليرة السورية</h3>
+                    <p>Syrian Pound</p>
+                </div>
+                <div class="card-balance">
+                    <h4 id="side-balance-syp">0</h4>
+                </div>
+            </div>
+
+            <div class="currency-card" onclick="switchCurrency('USD')">
+                <div class="card-icon icon-usd">$</div>
+                <div class="card-info">
+                    <h3>الدولار الأمريكي</h3>
+                    <p>US Dollar</p>
+                </div>
+                <div class="card-balance">
+                    <h4 id="side-balance-usd">0</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active View -->
+        <div id="detail-syp" class="detail-view active">
+            <div class="main-balance-card">
+                <p style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">رصيد الليرة
+                    السورية</p>
+                <h2 id="main-balance-syp">0</h2>
+                <p style="font-size: 1rem; font-weight: 900; color: #94a3b8;">ليرة سورية</p>
+            </div>
+
+            <div class="action-grid">
+                <button class="p-btn btn-fill" onclick="showTopup('SYP')"><i class="fas fa-plus"></i> تعبئة
+                    المحفظة</button>
+                <button class="p-btn btn-outline" onclick="openTransferModal()"><i class="fas fa-paper-plane"></i> تحويل
+                    مالي</button>
+            </div>
+
+            <div class="history-section">
+                <div class="history-title">
+                    <h3>سجل العمليات</h3>
+                    <span style="font-size: 0.7rem; font-weight: 800; color: #666;">عرض الكل</span>
+                </div>
+                <div id="tx-list-syp"></div>
+            </div>
+        </div>
+
+        <div id="detail-usd" class="detail-view">
+            <div class="main-balance-card">
+                <p style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">رصيد الدولار
+                    الأمريكي</p>
+                <h2 id="main-balance-usd">0</h2>
+                <p style="font-size: 1rem; font-weight: 900; color: #94a3b8;">دولار أمريكي</p>
+            </div>
+
+            <div class="action-grid">
+                <button class="p-btn btn-fill" onclick="showTopup('USD')"><i class="fas fa-plus"></i> تعبئة
+                    المحفظة</button>
+                <button class="p-btn btn-outline" onclick="openTransferModal()"><i class="fas fa-paper-plane"></i> تحويل
+                    مالي</button>
+            </div>
+
+            <div class="history-section">
+                <div class="history-title">
+                    <h3>سجل العمليات</h3>
+                    <span style="font-size: 0.7rem; font-weight: 800; color: #666;">عرض الكل</span>
+                </div>
+                <div id="tx-list-usd"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Modal -->
+    <div class="modal" id="transferModal">
+        <div class="modal-content">
+            <i class="fas fa-times btn-close" onclick="closeTransferModal()"></i>
+            <h3
+                style="font-weight: 950; font-size: 1.5rem; margin-bottom: 30px; color: var(--gold-main); text-align: center;">
+                تحويل مالي ملكي</h3>
+
+            <form id="transferForm">
+                <label class="form-label">رقم هاتف المستلم</label>
+                <input type="text" id="receiverPhone" class="p-input" placeholder="09xxxxxxxx" required maxlength="10">
+
+                <div class="verified-badge" id="receiverVerified">
+                    <div
+                        style="width: 35px; height: 35px; background: var(--gold-main); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #000;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.6rem; color: #666; margin: 0; font-weight: 800;">المستلم المعتمد:</p>
+                        <p style="font-size: 0.9rem; color: var(--gold-main); margin: 0; font-weight: 950;"
+                            id="receiverName">...</p>
+                    </div>
+                </div>
+
+                <label class="form-label">المبلغ المطلوب بالـ <span id="transferCurrencyName">ليرة</span></label>
+                <div style="position: relative;">
+                    <input type="number" id="transferAmount" class="p-input"
+                        style="font-size: 2rem; text-align: center; height: 80px;" placeholder="0.00" required>
+                    <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-weight: 900; color: var(--gold-main);"
+                        id="transferCurrencySymbol">ل.س</div>
+                </div>
+
+                <button type="submit" id="btnConfirmTransfer" class="p-btn btn-fill"
+                    style="width: 100%; margin-top: 20px; height: 65px; font-size: 1.2rem;">تأكيد التحويل الآن</button>
+
+                <p style="text-align: center; font-size: 0.6rem; color: #666; margin-top: 20px; line-height: 1.6;">بضغطك
+                    على تأكيد، أنت توافق على شروط الخدمة. العملية فورية ولا يمكن التراجع عنها.</p>
+            </form>
+        </div>
+    </div>
+
+    <div style="height: 100px;"></div>
 
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
     <script>
+        let activeCurrency = 'SYP';
+
         document.addEventListener('DOMContentLoaded', () => {
             if (!Store.user) {
                 window.location.href = 'login.html';
                 return;
             }
             renderWallet();
+
+            // Setup Real-time lookup
+            const phoneInput = document.getElementById('receiverPhone');
+            phoneInput.addEventListener('input', async (e) => {
+                const val = e.target.value;
+                const badge = document.getElementById('receiverVerified');
+                const nameEl = document.getElementById('receiverName');
+
+                if (val.length === 10) {
+                    const user = await Auth.findUserByPhone(val);
+                    if (user) {
+                        nameEl.innerText = user.name;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+
+            // Setup Transfer Submit
+            document.getElementById('transferForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const phone = document.getElementById('receiverPhone').value;
+                const amount = parseFloat(document.getElementById('transferAmount').value);
+                const btn = document.getElementById('btnConfirmTransfer');
+
+                if (!amount || amount <= 0) return alert("يرجى إدخال مبلغ صحيح");
+
+                btn.disabled = true;
+                btn.innerText = "جاري التحويل...";
+
+                try {
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/wallet/transfer`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            senderId: Store.user.id,
+                            receiverPhone: phone,
+                            amount: amount,
+                            currency: activeCurrency
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok) {
+                        Notify.show("نجاح التحويل", "تم إرسال المبلغ بنجاح إلى المستلم المعتمد.", "fas fa-check-double");
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        alert("❌ " + data.message);
+                    }
+                } catch (err) {
+                    alert("خطأ في الاتصال بالسيرفر");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "تأكيد التحويل الآن";
+                }
+            };
         });
 
-        function renderWallet() {
-            // Update Balances
-            document.getElementById('balance-usd').innerText = `$${(Store.user.walletUSD || 0).toLocaleString()}`;
-            document.getElementById('balance-syp').innerText = `${(Store.user.walletSYP || 0).toLocaleString()} ل.س`;
+        function switchCurrency(curr) {
+            activeCurrency = curr;
+            // Cards
+            document.querySelectorAll('.currency-card').forEach(c => c.classList.remove('active'));
+            event.currentTarget.classList.add('active');
 
-            // Tx Lists
-            const txs = Store.getData('transactions') || [];
-            const usdTx = txs.filter(t => t.userPhone === Store.user.phone && t.currency === 'USD');
-            const sypTx = txs.filter(t => t.userPhone === Store.user.phone && t.currency === 'SYP');
-
-            renderList('tx-usd-list', usdTx, '$');
-            renderList('tx-syp-list', sypTx, ' ل.س');
+            // Details
+            document.querySelectorAll('.detail-view').forEach(d => d.classList.remove('active'));
+            document.getElementById(`detail-${curr.toLowerCase()}`).classList.add('active');
         }
 
-        function renderList(elId, list, symbol) {
+        async function renderWallet() {
+            // Fetch latest balance from server if possible, else use local
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/wallet/balance/${Store.user.id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    Store.user.balanceSYP = data.balanceSYP;
+                    Store.user.balanceUSD = data.balanceUSD;
+                    localStorage.setItem('wusul_user', JSON.stringify(Store.user));
+                }
+            } catch (e) { }
+
+            const syp = Store.user.balanceSYP || 0;
+            const usd = Store.user.balanceUSD || 0;
+
+            document.getElementById('side-balance-syp').innerText = syp.toLocaleString();
+            document.getElementById('side-balance-usd').innerText = usd.toLocaleString();
+
+            document.getElementById('main-balance-syp').innerText = syp.toLocaleString();
+            document.getElementById('main-balance-usd').innerText = usd.toLocaleString();
+
+            // Fetch Transactions from API
+            try {
+                const txRes = await fetch(`${CONFIG.API_BASE_URL}/api/wallet/transactions/${Store.user.id}`);
+                if (txRes.ok) {
+                    const txs = await txRes.json();
+                    renderTxs(txs.filter(t => t.currency === 'SYP'), 'tx-list-syp');
+                    renderTxs(txs.filter(t => t.currency === 'USD'), 'tx-list-usd');
+                }
+            } catch (e) {
+                console.error("Tx history load fail");
+            }
+        }
+
+        function renderTxs(list, elId) {
             const el = document.getElementById(elId);
             if (list.length === 0) {
-                el.innerHTML = '<p style="color:#cbd5e1; text-align:center;">لا توجد عمليات</p>';
+                el.innerHTML = '<div style="text-align:center; padding:40px; color:#52525B; font-weight:800;">لا يوجد عمليات مسجلة</div>';
                 return;
             }
-            el.innerHTML = list.slice(0, 5).map(tx => `
-                <div class="tx-item">
-                    <div>
-                        <div style="font-weight:700; font-size:0.9rem;">${tx.title}</div>
-                        <div style="font-size:0.75rem; color:#94a3b8;">${tx.date}</div>
-                    </div>
-                    <div style="font-weight:800; color:${tx.amount > 0 ? '#16a34a' : '#ef4444'};">
-                        ${tx.amount > 0 ? '+' : ''}${tx.amount.toLocaleString()}${symbol}
-                    </div>
+            el.innerHTML = list.map(tx => `
+            <div class="tx-item">
+                <div class="tx-icon ${tx.amount > 0 ? 'tx-type-plus' : 'tx-type-minus'}">
+                    <i class="fas ${tx.amount > 0 ? 'fa-arrow-down-left' : 'fa-arrow-up-right'}"></i>
                 </div>
-            `).join('');
+                <div class="tx-info">
+                    <h5>${tx.title}</h5>
+                    <p>${new Date(tx.createdAt).toLocaleString('ar-SY')}</p>
+                </div>
+                <div class="tx-amount">
+                    <div class="val" style="color:${tx.amount > 0 ? '#00D9A5' : '#EF4444'}">
+                        ${tx.amount > 0 ? '+' : ''}${tx.amount.toLocaleString()}
+                    </div>
+                    <span class="status">${tx.status}</span>
+                </div>
+            </div>
+        `).join('');
         }
 
-        function requestDeposit(currency) {
-            alert(`لشحن رصيد ${currency}، يرجى التواصل مع أحد الوكلاء المعتمدين أو زيارة مكتبنا.`);
+        function openTransferModal() {
+            document.getElementById('transferCurrencyName').innerText = activeCurrency === 'SYP' ? 'ليرة سورية' : 'دولار أمريكي';
+            document.getElementById('transferCurrencySymbol').innerText = activeCurrency === 'SYP' ? 'ل.س' : '$';
+            document.getElementById('transferModal').style.display = 'flex';
         }
 
-        function requestWithdraw(currency) {
-            alert("خدمة السحب متاحة حالياً عبر الوكلاء فقط.");
+        function closeTransferModal() {
+            document.getElementById('transferModal').style.display = 'none';
+        }
+
+        function showTopup(curr) {
+            alert(`لشحن محفظة ${curr}، يرجى مراجعة أقرب وكيل معتمد أو مكتب الشركة.`);
         }
     </script>
 </body>
