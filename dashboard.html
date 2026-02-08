@@ -126,10 +126,16 @@
                     <div class="registration-form"
                         style="max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px;">
                         <div class="grid grid-2" style="gap: 15px;">
-                            <input type="text" id="admin-phone" class="form-input"
-                                style="background: rgba(0,0,0,0.05); color: #000;" placeholder="رقم هاتف المستخدم">
+                            <div style="flex: 1.5;">
+                                <input type="text" id="admin-phone" class="form-input"
+                                    style="background: rgba(0,0,0,0.05); color: #000;" placeholder="رقم هاتف المستخدم"
+                                    oninput="lookupAdminUser(this.value)">
+                                <div id="admin-user-preview"
+                                    style="display:none; font-size: 0.7rem; font-weight: 800; color: #16a34a; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
+                                </div>
+                            </div>
                             <input type="number" id="admin-points" class="form-input"
-                                style="background: rgba(0,0,0,0.05); color: #000;" placeholder="الكمية">
+                                style="background: rgba(0,0,0,0.05); color: #000; height: 45px;" placeholder="الكمية">
                         </div>
                         <select id="admin-currency" class="form-input"
                             style="background: rgba(0,0,0,0.05); margin-top: 10px; color: #000;">
@@ -303,15 +309,56 @@
         // They are bound to HTML onclicks directly. Ideally should be in dashboard.js or auth.js
         // For now, keeping them global to avoid breakage until full migration.
 
-        function adminPoints(type) {
+        async function adminPoints(type) {
             const phone = document.getElementById('admin-phone').value;
             const points = parseInt(document.getElementById('admin-points').value);
             const currency = document.getElementById('admin-currency').value;
+
             if (!phone || isNaN(points)) return;
+
+            // Find User Data
+            const user = await Auth.findUserByPhone(phone);
+            if (!user) {
+                showResult("خطأ: لم يتم العثور على مستخدم بهذا الرقم", false);
+                return;
+            }
+
+            const actionText = (type === 'UP') ? 'إيداع' : 'سحب';
+            const amountText = `${points.toLocaleString()} ${currency}`;
+
+            if (!confirm(`⚠️ تأكيد العملية الملكية:\n\nنوع العملية: ${actionText}\nالمستلم: ${user.name}\nالرقم: ${phone}\nالمبلغ: ${amountText}`)) {
+                return;
+            }
+
             const final = (type === 'UP') ? points : -points;
             const res = Store.updateUserBalance(phone, final, currency, "تحكم إداري مباشر", Store.user.role);
-            showResult(res.success ? "تم تحديث الرصيد بنجاح" : res.message, res.success);
+
+            if (res.success) {
+                showResult(`تم ${actionText} ${amountText} بنجاح للمستخدم ${user.name} ✅`, true);
+                Notify.show("نجاح العملية", `تم ${actionText} الرصيد لـ ${user.name} بنجاح.`, "fas fa-cash-register");
+            } else {
+                showResult(res.message, false);
+            }
+
             UI.updateNavbar();
+        }
+
+        async function lookupAdminUser(phone) {
+            const preview = document.getElementById('admin-user-preview');
+            if (phone.length === 10) {
+                const user = await Auth.findUserByPhone(phone);
+                if (user) {
+                    preview.innerText = `👤 المستهدف: ${user.name}`;
+                    preview.style.display = 'block';
+                    preview.style.color = '#16a34a';
+                } else {
+                    preview.innerText = `❌ رقم غير مسجل`;
+                    preview.style.display = 'block';
+                    preview.style.color = '#dc2626';
+                }
+            } else {
+                preview.style.display = 'none';
+            }
         }
 
         // Search User UI Helper

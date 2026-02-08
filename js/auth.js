@@ -503,28 +503,156 @@ const UI = {
 
     updateNavbar: () => {
         const navRight = document.getElementById('nav-right');
+        const navMenu = document.getElementById('nav-menu');
+
+        // Hide standard desktop menu if sidebar is implemented
+        if (navMenu) {
+            navMenu.style.display = 'none';
+        }
+
         if (!navRight) return;
+
+        // Ensure Sidebar exists
+        UI.initSidebar();
 
         if (Store.user) {
             navRight.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <a href="profile.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
-                        <div class="user-info-nav" style="text-align: left;">
-                            <p style="font-size: 11px; font-weight: 800; color: #64748B;">👋 مرحباً، ${Store.user.name}</p>
-                            <p style="font-size: 11px; font-weight: 900; color: #10b981;">
-                                $${(Store.user.balanceUSD || 0).toLocaleString()} | 
-                                ${(Store.user.balanceSYP || 0).toLocaleString()} ل.س
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <a href="profile.html" class="user-info-nav" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+                        <div style="text-align: left;">
+                            <p style="font-size: 10px; font-weight: 800; color: #64748B; margin:0;">👋 مرحباً، ${Store.user.name.split(' ')[0]}</p>
+                            <p style="font-size: 11px; font-weight: 900; color: #10b981; margin:0;">
+                                $${(Store.user.balanceUSD || 0).toLocaleString()}
                             </p>
                         </div>
                         <img src="${Store.user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + Store.user.name}" 
-                             style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid var(--gold); background: #FFF;">
+                             style="width: 38px; height: 38px; border-radius: 12px; border: 2px solid var(--gold); background: #FFF;">
                     </a>
-                    <button onclick="Auth.logout()" class="btn btn-outline" style="padding: 6px 10px; font-size: 10px; background: rgba(0,0,0,0.05);">خروج</button>
+                    <div onclick="UI.toggleSidebar()" style="width: 42px; height: 42px; background: #000; color: var(--gold); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(197, 160, 33, 0.3);">
+                        <i class="fas fa-bars"></i>
+                    </div>
                 </div>
             `;
         } else {
             navRight.innerHTML = `<a href="login.html" class="btn btn-primary" style="padding: 8px 15px; font-size: 12px;">دخول</a>`;
         }
+
+        // PWA Install Check
+        UI.checkPWAInstall();
+    },
+
+    deferredPrompt: null,
+    checkPWAInstall: () => {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        if (isStandalone) return;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            UI.deferredPrompt = e;
+
+            // Show promotion if not shown in this session
+            if (!sessionStorage.getItem('pwa_notify_shown')) {
+                setTimeout(() => {
+                    if (typeof Notify !== 'undefined') {
+                        Notify.show(
+                            "تثبيت التطبيق 📱",
+                            `قم بتثبيت بوابة وصول على شاشتك الرئيسية للوصول السريع والآمن. <br><br> <button onclick="UI.installPWA()" class="btn btn-primary" style="width:100%; padding:8px; font-size:11px;">تثبيت الآن ✨</button>`,
+                            "fas fa-mobile-screen"
+                        );
+                        sessionStorage.setItem('pwa_notify_shown', 'true');
+                    }
+                }, 3000);
+            }
+        });
+    },
+
+    installPWA: async () => {
+        if (!UI.deferredPrompt) return;
+        UI.deferredPrompt.prompt();
+        const { outcome } = await UI.deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        }
+        UI.deferredPrompt = null;
+    },
+
+    toggleSidebar: () => {
+        const sidebar = document.getElementById('royal-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+    },
+
+    initSidebar: () => {
+        if (document.getElementById('royal-sidebar')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'sidebar-overlay';
+        overlay.className = 'sidebar-overlay';
+        overlay.onclick = UI.toggleSidebar;
+        document.body.appendChild(overlay);
+
+        const sidebar = document.createElement('div');
+        sidebar.id = 'royal-sidebar';
+        sidebar.className = 'royal-sidebar';
+
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const isAdmin = Store.user && Store.user.role === 'ADMIN';
+
+        sidebar.innerHTML = `
+            <div class="sidebar-header">
+                <div class="logo-box">ب</div>
+                <div>
+                    <h3 style="color: white; font-weight: 900; margin: 0;">بوابة وصول</h3>
+                    <p style="color: var(--gold); font-size: 0.7rem; font-weight: 800; margin: 0;">الخدمات الملكية</p>
+                </div>
+                <i class="fas fa-times" onclick="UI.toggleSidebar()" style="margin-right: auto; cursor: pointer; color: #444;"></i>
+            </div>
+
+            <div class="sidebar-links">
+                <a href="index.html" class="sidebar-link ${currentPage === 'index.html' ? 'active' : ''}">
+                    <i class="fas fa-home"></i> الرئيسية
+                </a>
+                <a href="doctors.html" class="sidebar-link ${currentPage === 'doctors.html' ? 'active' : ''}">
+                    <i class="fas fa-user-md"></i> الأطباء
+                </a>
+                <a href="taxi.html" class="sidebar-link ${currentPage === 'taxi.html' ? 'active' : ''}">
+                    <i class="fas fa-taxi"></i> النقل والسفر
+                </a>
+                <a href="wallet.html" class="sidebar-link ${currentPage === 'wallet.html' ? 'active' : ''}">
+                    <i class="fas fa-wallet"></i> المحفظة الملكية
+                </a>
+                <a href="profile.html" class="sidebar-link ${currentPage === 'profile.html' ? 'active' : ''}">
+                    <i class="fas fa-user-circle"></i> الملف الشخصي
+                </a>
+                <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 10px 0;">
+                
+                ${isAdmin ? `
+                <a href="dashboard.html" class="sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}">
+                    <i class="fas fa-crown"></i> إدارة النظام
+                </a>
+                <a href="reports.html" class="sidebar-link ${currentPage === 'reports.html' ? 'active' : ''}">
+                    <i class="fas fa-chart-line"></i> التقارير المالية
+                </a>
+                ` : `
+                <a href="apply.html" class="sidebar-link ${currentPage === 'apply.html' ? 'active' : ''}">
+                    <i class="fas fa-stethoscope"></i> انضم كطبيب
+                </a>
+                `}
+                
+                <a href="#" onclick="Auth.logout()" class="sidebar-link" style="color: #ef4444; margin-top: 20px;">
+                    <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                </a>
+            </div>
+
+            <div style="margin-top: auto; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 20px; text-align: center;">
+                <p style="color: #444; font-size: 0.7rem; font-weight: 700;">نسخة النظام v2.4.0</p>
+                <p style="color: #666; font-size: 0.6rem;">جميع الحقوق محفوظة 2026</p>
+            </div>
+        `;
+        document.body.appendChild(sidebar);
     }
 };
 

@@ -594,8 +594,12 @@
             <div id="myQrcode"
                 style="display: inline-block; padding: 15px; background: white; border-radius: 20px; border: 1px solid #EEE;">
             </div>
-            <p style="margin-top: 20px; color: black; font-weight: 900; font-size: 1.2rem;">${Store.user.phone}</p>
-            <button class="p-btn btn-fill" style="width: 100%; margin-top: 30px;"
+            <div style="margin-top: 15px; text-align: center;">
+                <p id="qr-user-name" style="color: black; font-weight: 950; font-size: 1.3rem; margin-bottom: 5px;">---
+                </p>
+                <p id="qr-user-phone" style="color: var(--gold-main); font-weight: 800; font-size: 1rem;">---</p>
+            </div>
+            <button class="p-btn btn-fill" style="width: 100%; margin-top: 25px;"
                 onclick="closeQRModal()">إغلاق</button>
         </div>
     </div>
@@ -644,6 +648,18 @@
 
                 if (!amount || amount <= 0) return alert("يرجى إدخال مبلغ صحيح");
 
+                // Get receiver name for confirmation
+                const nameEl = document.getElementById('receiverName');
+                const receiverName = nameEl.innerText || "غير معروف";
+
+                if (receiverName === "جارِ التحقق..." || receiverName === "غير معروف") {
+                    return alert("يرجى التأكد من رقم المستلم أولاً");
+                }
+
+                if (!confirm(`هل أنت متأكد من تحويل ${amount} ${activeCurrency === 'SYP' ? 'ل.س' : '$'} إلى:\nالاسم: ${receiverName}\nالرقم: ${phone}`)) {
+                    return;
+                }
+
                 btn.disabled = true;
                 btn.innerText = "جاري التحويل...";
 
@@ -661,7 +677,7 @@
 
                     const data = await res.json();
                     if (res.ok) {
-                        Notify.show("نجاح التحويل", "تم إرسال المبلغ بنجاح إلى المستلم المعتمد.", "fas fa-check-double");
+                        Notify.show("نجاح التحويل", `تم إرسال المبلغ بنجاح إلى ${receiverName}.`, "fas fa-check-double");
                         setTimeout(() => window.location.reload(), 2000);
                     } else {
                         alert("❌ " + data.message);
@@ -785,6 +801,9 @@
                 });
                 qrGenerated = true;
             }
+
+            document.getElementById('qr-user-name').innerText = Store.user.name;
+            document.getElementById('qr-user-phone').innerText = Store.user.phone;
             document.getElementById('qrModal').style.display = 'flex';
         }
 

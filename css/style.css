@@ -70,6 +70,87 @@ body {
 }
 
 /* Glass UI Elements */
+/* Royal Sidebar System */
+.royal-sidebar {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 280px;
+    height: 100vh;
+    background: #0a0b10;
+    backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 2000;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 30px 20px;
+}
+
+.royal-sidebar.active {
+    right: 0;
+    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.3s;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.sidebar-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    color: #94a3b8;
+    text-decoration: none;
+    border-radius: 18px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.sidebar-link i {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+    background: rgba(197, 160, 33, 0.1);
+    color: var(--gold);
+    transform: translateX(-5px);
+}
+
+.sidebar-link.active {
+    border-right: 4px solid var(--gold);
+}
+
 .glass-nav {
     background: var(--glass);
     backdrop-filter: blur(12px);
@@ -127,22 +208,8 @@ body {
     color: var(--gold);
 }
 
-/* Hamburger Menu (Mobile Only) */
 .menu-toggle {
-    display: none;
-    flex-direction: column;
-    gap: 5px;
-    cursor: pointer;
-    z-index: 1001;
-    padding: 5px;
-}
-
-.menu-toggle span {
-    width: 25px;
-    height: 3px;
-    background: var(--text);
-    border-radius: 2px;
-    transition: 0.3s;
+    display: none !important;
 }
 
 /* Auth Buttons */
