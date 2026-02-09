@@ -103,7 +103,7 @@ const Auth = {
         } catch (error) {
             const user = Store.getUsers().find(u => u.phone === phone && u.password === password);
             if (user) return { success: true, user };
-            return { success: false, message: "بيانات الدخول غير صحيحة أو السيرفر متوقف" };
+            return { success: false, message: "بيانات الدخول غير صحيحة، يرجى التأكد والمحاولة مجدداً" };
         }
     },
 
@@ -143,7 +143,7 @@ const Auth = {
                 .catch((error) => {
                     const opt = Math.floor(100000 + Math.random() * 900000);
                     SMS.currentOTP = opt;
-                    SMS.send(phone, `[تجريبي] رمز الأمان الخاص بك هو: ${opt}`);
+                    SMS.send(phone, `رمز الأمان الخاص بك هو: ${opt}`);
                     return { success: true, simulated: true, code: opt };
                 });
         }

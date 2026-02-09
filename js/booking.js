@@ -341,20 +341,26 @@ async function processPayment() {
         });
         localStorage.setItem('wusul_db_transactions', JSON.stringify(txs));
 
-        updateQueueDisplay();
-        closeModal();
+        // Save Booking for My Bookings Page
+        const bookings = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+        const newBooking = {
+            id: Date.now(),
+            doctorId: state.doctor.id,
+            doctorName: state.doctor.name,
+            patientPhone: state.user.phone,
+            patientName: state.user.name,
+            serviceName: state.selectedService.name,
+            price: price,
+            currency: currency,
+            status: 'PENDING',
+            date: new Date().toLocaleString('ar-SY')
+        };
+        bookings.unshift(newBooking);
+        localStorage.setItem('wusul_bookings', JSON.stringify(bookings));
+        localStorage.setItem('wusul_last_booking', JSON.stringify(newBooking));
 
-        if (els.bookBtn) {
-            els.bookBtn.innerHTML = `<span>✅ تم الحجز - تتبع دورك</span>`;
-            els.bookBtn.style.background = "var(--success-color)";
-        }
-
-        showNotification("تم تأكيد الحجز وخصم الرصيد بنجاح", "success");
-
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = "تأكيد واستمرار";
-        }
+        // Redirect to Details
+        window.location.href = 'booking-details.html';
     }, 1500);
 }
 

@@ -9,23 +9,64 @@ const Store = {
     setData: (key, data) => localStorage.setItem(`wusul_db_${key}`, JSON.stringify(data)),
 
     init: () => {
-        if (!localStorage.getItem('wusul_db_init')) {
+        // --- EMERGENCY WIPE & FRESH START ---
+        // If we want to start from absolute zero, we use a new version key
+        const DB_VERSION = "wusul_db_v2_fresh";
+        if (localStorage.getItem('wusul_db_init') !== DB_VERSION) {
+            console.log("Starting fresh database...");
+
+            // 1. Clear everything except critical settings if any
+            localStorage.clear();
+
+            // 2. Setup Master Admin (The only user allowed at start)
             const seedUsers = [
-                { id: 1, name: "إدارة النظام", phone: "0936020439", password: "202025", role: "ADMIN", balanceUSD: 1000, balanceSYP: 15000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin" },
-                { id: 2, name: "وكيل معتمد", phone: "0900000000", password: "agent", role: "AGENT", balanceUSD: 500, balanceSYP: 5000000, avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=agent1" }
+                { id: 1, name: "إدارة النظام الملكية", phone: "0936020439", password: "19881988", role: "ADMIN", balanceUSD: 10000, balanceSYP: 50000000, avatar: "assets/nuser.png" }
             ];
             Store.setUsers(seedUsers);
 
-            // Seed Doctors if not exists
-            const seedDoctors = [
-                { id: 1, name: "د. أحمد عبدالله", specialty: "استشاري قلب وأوعية دموية", city: "دمشق", displayPrice: "$40", avatar: "https://ui-avatars.com/api/?name=Ahmed+Abdullah&background=0D8ABC&color=fff", isVerified: true },
-                { id: 2, name: "د. سارة محمد", specialty: "أخصائية طب أطفال", city: "حلب", displayPrice: "150,000 ل.س", avatar: "https://ui-avatars.com/api/?name=Sara+Mohamed&background=E91E63&color=fff", isVerified: true },
-                { id: 3, name: "د. خالد العمر", specialty: "استشاري جلدية", city: "اللاذقية", displayPrice: "$50", avatar: "https://ui-avatars.com/api/?name=Khaled+Omar&background=4CAF50&color=fff", isVerified: true }
-            ];
-            Store.setData('doctors', seedDoctors);
+            // 3. Initialize empty structures
+            Store.setData('doctors', []);
+            Store.setData('taxi_drivers', []);
+            Store.setData('taxi_orders', []);
+            Store.setData('hospitals', []);
+            Store.setData('pharmacies', []);
+            Store.setData('transactions', []);
+            Store.setData('notifications', []);
+            Store.setData('bookings', []);
 
-            localStorage.setItem('wusul_db_init', 'true');
+            // 4. Set the init flag
+            localStorage.setItem('wusul_db_init', DB_VERSION);
+
+            // 5. Force session logout for current user (they must log in as admin)
+            localStorage.removeItem('wusul_user');
+            Store.user = null;
+
+            console.log("System initialized successfully. Only Admin account exists.");
+            // Optional: Reload to apply changes immediately
+            // window.location.reload();
         }
+
+        // --- Force Admin Refresh (Safety Check) ---
+        let allUsers = Store.getUsers();
+        let masterAdmin = allUsers.find(u => u.phone === "0936020439");
+        if (masterAdmin) {
+            masterAdmin.password = "19881988";
+            masterAdmin.role = "ADMIN";
+            masterAdmin.name = "إدارة النظام الملكية";
+            Store.setUsers(allUsers);
+        } else {
+            allUsers.push({ id: 1, name: "إدارة النظام الملكية", phone: "0936020439", password: "19881988", role: "ADMIN", balanceUSD: 10000, balanceSYP: 50000000, avatar: "assets/nuser.png" });
+            Store.setUsers(allUsers);
+        }
+
+        // --- Migration: Avatar Fix ---
+        const users = Store.getUsers();
+        users.forEach(u => {
+            if (!u.avatar || u.avatar.includes('dicebear.com') || u.avatar.includes('ui-avatars.com')) {
+                u.avatar = "assets/nuser.png";
+            }
+        });
+        Store.setUsers(users);
     },
 
     updateUserBalance: (phone, amount, currency, title, performedByRole = 'USER') => {
@@ -110,6 +151,25 @@ const Store = {
         return { success: false, message: "لم يتم العثور على سجل بيانات الطبيب الملحق بهذا الرقم" };
     },
 
+    resetToUser: (phone) => {
+        const users = Store.getUsers();
+        const idx = users.findIndex(u => u.phone === phone);
+        if (idx === -1) return { success: false, message: "المستخدم غير موجود" };
+
+        users[idx].role = 'USER';
+        Store.setUsers(users);
+
+        // Also unverify if they were a doctor
+        let doctors = Store.getData('doctors') || [];
+        const dIdx = doctors.findIndex(d => d.phone === phone);
+        if (dIdx !== -1) {
+            doctors[dIdx].isVerified = false;
+            Store.setData('doctors', doctors);
+        }
+
+        return { success: true, message: "تم إنهاء الخدمة وإعادة الحساب لوضع مستخدم عادي ✅" };
+    },
+
     makeAdmin: (phone) => {
         const users = Store.getUsers();
         const idx = users.findIndex(u => u.phone === phone);
@@ -176,7 +236,7 @@ const Store = {
             password,
             role: 'DOCTOR',
             balance: 0,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name.replace(' ', '+')}`
+            avatar: "assets/nuser.png"
         };
 
         users.push(newUser);
@@ -200,11 +260,11 @@ const Store = {
 
     searchUsers: (query) => {
         if (!query) return [];
-        const q = query.toLowerCase();
+        const q = query.toLowerCase().trim();
         return Store.getUsers().filter(u =>
-            u.name.toLowerCase().includes(q) ||
-            u.phone.includes(q)
-        ).slice(0, 5); // Return top 5
+            (u.name && u.name.toLowerCase().includes(q)) ||
+            (u.phone && u.phone.includes(q))
+        );
     },
 
     syncDoctors: async () => {
@@ -278,25 +338,50 @@ const SMS = {
 
 const Auth = {
     login: async (phone, password) => {
+        // --- Security Enhancement: Input Sanitization ---
+        const cleanPhone = phone.replace(/[<>]/g, "").trim();
+        const cleanPass = password.replace(/[<>]/g, "").trim();
+
+        // --- Security Enhancement: Rate Limiting Simulation ---
+        let attempts = parseInt(localStorage.getItem('auth_attempts') || '0');
+        let blockTime = parseInt(localStorage.getItem('auth_block_until') || '0');
+
+        if (Date.now() < blockTime) {
+            const remaining = Math.ceil((blockTime - Date.now()) / 1000);
+            return { success: false, message: `محاولات كثيرة خاطئة. يرجى الانتظار ${remaining} ثانية.` };
+        }
+
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, password })
+                body: JSON.stringify({ phone: cleanPhone, password: cleanPass })
             });
             const data = await response.json();
             if (response.ok) {
+                localStorage.setItem('auth_attempts', '0'); // Reset on success
                 return { success: true, user: data.user, token: data.token };
             } else {
-                // Return server error message
                 return { success: false, message: data.message || "بيانات الدخول غير صحيحة" };
             }
         } catch (error) {
             console.error("API Login Error, falling back to local:", error);
-            // Fallback for local testing
-            const user = Store.getUsers().find(u => u.phone === phone && u.password === password);
-            if (user) return { success: true, user };
-            return { success: false, message: "بيانات الدخول غير صحيحة أو السيرفر متوقف" };
+            const user = Store.getUsers().find(u => u.phone === cleanPhone && u.password === cleanPass);
+            if (user) {
+                localStorage.setItem('auth_attempts', '0');
+                return { success: true, user };
+            }
+
+            // --- Security Step: Increment attempts ---
+            attempts++;
+            localStorage.setItem('auth_attempts', attempts.toString());
+            if (attempts >= 5) {
+                const nextBlock = Date.now() + (60 * 1000); // 1 minute block
+                localStorage.setItem('auth_block_until', nextBlock.toString());
+                return { success: false, message: "تم قفل الدخول مؤقتاً بسبب 5 محاولات خاطئة. انتظر دقيقة." };
+            }
+
+            return { success: false, message: "بيانات الدخول غير صحيحة، يرجى التأكد والمحاولة مجدداً" };
         }
     },
 
@@ -329,7 +414,7 @@ const Auth = {
                             clinic: extraData.clinic || "",
                             cost: extraData.price ? parseInt(extraData.price) : 0,
                             displayPrice: extraData.price ? extraData.price + " نقطة" : "غير محدد",
-                            avatar: data.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+                            avatar: data.user.avatar || "assets/nuser.png",
                             isVerified: false,
                             services: [],
                             certificate: extraData.certificate,
@@ -357,7 +442,7 @@ const Auth = {
                 password,
                 role,
                 balance: 0,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
+                avatar: "assets/nuser.png"
             };
             users.push(newUser);
             Store.setUsers(users);
@@ -405,7 +490,7 @@ const Auth = {
                     // Fallback to simulation if Firebase fails (e.g. domain not authorized)
                     const opt = Math.floor(100000 + Math.random() * 900000);
                     SMS.currentOTP = opt;
-                    SMS.send(phone, `[تجريبي] رمز الأمان الخاص بك هو: ${opt}`);
+                    SMS.send(phone, `رمز الأمان الخاص بك هو: ${opt}`);
                     return { success: true, simulated: true, code: opt };
                 });
         } else {
@@ -478,14 +563,17 @@ const Auth = {
     },
 
     findUserByPhone: async (phone) => {
+        const p = (phone || "").trim();
         try {
-            const res = await fetch(`${CONFIG.API_BASE_URL}/api/wallet/find-user/${phone}`);
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/wallet/find-user/${p}`);
             if (res.ok) return await res.json();
-            return null;
         } catch (e) {
-            console.error("Lookup error:", e);
-            return null;
+            console.error("API Lookup error, switching to local store:", e);
         }
+
+        // Final fallback: Search in local records
+        const localUsers = Store.getUsers();
+        return localUsers.find(u => u.phone === p) || null;
     }
 };
 
@@ -505,9 +593,11 @@ const UI = {
         const navRight = document.getElementById('nav-right');
         const navMenu = document.getElementById('nav-menu');
 
-        // Hide standard desktop menu if sidebar is implemented
-        if (navMenu) {
+        // Desktop menu handling
+        if (navMenu && window.innerWidth < 1024) {
             navMenu.style.display = 'none';
+        } else if (navMenu) {
+            navMenu.style.display = 'flex';
         }
 
         if (!navRight) return;
@@ -525,7 +615,7 @@ const UI = {
                                 $${(Store.user.balanceUSD || 0).toLocaleString()}
                             </p>
                         </div>
-                        <img src="${Store.user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + Store.user.name}" 
+                        <img src="${Store.user.avatar || 'assets/nuser.png'}" 
                              style="width: 38px; height: 38px; border-radius: 12px; border: 2px solid var(--gold); background: #FFF;">
                     </a>
                     <div onclick="UI.toggleSidebar()" style="width: 42px; height: 42px; background: #000; color: var(--gold); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(197, 160, 33, 0.3);">
@@ -603,17 +693,27 @@ const UI = {
 
         sidebar.innerHTML = `
             <div class="sidebar-header">
-                <div class="logo-box">ب</div>
+                <div class="logo-box">
+                    <img src="assets/logo.png" alt="معاملاتي">
+                </div>
                 <div>
-                    <h3 style="color: white; font-weight: 900; margin: 0;">بوابة وصول</h3>
+                    <h3 style="color: white; font-weight: 900; margin: 0;">معاملاتي</h3>
                     <p style="color: var(--gold); font-size: 0.7rem; font-weight: 800; margin: 0;">الخدمات الملكية</p>
                 </div>
                 <i class="fas fa-times" onclick="UI.toggleSidebar()" style="margin-right: auto; cursor: pointer; color: #444;"></i>
             </div>
 
-            <div class="sidebar-links">
-                <a href="index.html" class="sidebar-link ${currentPage === 'index.html' ? 'active' : ''}">
-                    <i class="fas fa-home"></i> الرئيسية
+                <a href="dashboard.html" class="sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}">
+                    <i class="fas fa-th-large"></i> لوحة التحكم
+                </a>
+                <a href="emergency.html" class="sidebar-link" style="color: #ef4444; font-weight: 800;">
+                    <i class="fas fa-bolt"></i> وضع الطوارئ
+                </a>
+                <a href="map.html" class="sidebar-link ${currentPage === 'map.html' ? 'active' : ''}">
+                    <i class="fas fa-map-marked-alt"></i> الخريطة الصحية
+                </a>
+                <a href="family.html" class="sidebar-link ${currentPage === 'family.html' ? 'active' : ''}">
+                    <i class="fas fa-users"></i> حساب العائلة
                 </a>
                 <a href="doctors.html" class="sidebar-link ${currentPage === 'doctors.html' ? 'active' : ''}">
                     <i class="fas fa-user-md"></i> الأطباء
@@ -630,17 +730,21 @@ const UI = {
                 <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 10px 0;">
                 
                 ${isAdmin ? `
-                <a href="dashboard.html" class="sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}">
-                    <i class="fas fa-crown"></i> إدارة النظام
+                <a href="admin.html" class="sidebar-link ${currentPage === 'admin.html' ? 'active' : ''}" style="background: rgba(197, 160, 33, 0.1); color: var(--gold);">
+                    <i class="fas fa-crown"></i> الإدارة المركزية
                 </a>
                 <a href="reports.html" class="sidebar-link ${currentPage === 'reports.html' ? 'active' : ''}">
-                    <i class="fas fa-chart-line"></i> التقارير المالية
+                    <i class="fas fa-chart-line"></i> تقارير المحفظة
+                </a>
+                ` : (Store.user && Store.user.role === 'TAXI_DRIVER' ? `
+                <a href="taxi-driver.html" class="sidebar-link ${currentPage === 'taxi-driver.html' ? 'active' : ''}">
+                    <i class="fas fa-taxi"></i> لوحة الكابتن
                 </a>
                 ` : `
                 <a href="apply.html" class="sidebar-link ${currentPage === 'apply.html' ? 'active' : ''}">
                     <i class="fas fa-stethoscope"></i> انضم كطبيب
                 </a>
-                `}
+                `)}
                 
                 <a href="#" onclick="Auth.logout()" class="sidebar-link" style="color: #ef4444; margin-top: 20px;">
                     <i class="fas fa-sign-out-alt"></i> تسجيل الخروج

@@ -17,9 +17,21 @@ const Dashboard = {
         document.getElementById('user-avatar').src = Store.user.avatar;
         document.getElementById('role-badge').innerText = Store.user.role;
 
-        if (Store.user.role === 'ADMIN' || Store.user.role === 'AGENT') {
-            const extra = document.getElementById('extra-links');
-            if (extra) extra.innerHTML = `<a href="agents.html" class="side-link">🏢 بوابة الوكلاء</a>`;
+        // Statistics
+        const bookings = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+        const userBookings = bookings.filter(b => b.patientPhone === Store.user.phone && b.status !== 'REJECTED').length;
+        const bookingCountEl = document.getElementById('active-bookings-count');
+        if (bookingCountEl) bookingCountEl.innerText = userBookings;
+
+        const extra = document.getElementById('extra-links');
+        if (extra) {
+            extra.innerHTML = '';
+            if (Store.user.role === 'ADMIN' || Store.user.role === 'AGENT') {
+                extra.innerHTML += `<a href="agents-activity.html" class="side-link">🛡️ تفعيل الرتب</a>`;
+            }
+            if (Store.user.role === 'DOCTOR') {
+                extra.innerHTML += `<a href="doctor-requests.html" class="side-link">🏥 طلبات المرضى</a>`;
+            }
         }
     },
 
@@ -57,7 +69,7 @@ const Dashboard = {
                     <img src="${d.avatar}" style="width: 60px; height: 60px; border-radius: 18px; border: 2px solid var(--gold);">
                     <div style="flex: 1;">
                         <h4 style="color: white; font-size: 1.1rem; margin: 0 0 5px 0; font-weight: 900;">${d.name}</h4>
-                        <p style="color: #94a3b8; font-size: 0.8rem; margin: 0; font-weight: 700;">${d.specialty} | ${d.city}</p>
+                        <p style="color: #94a3b8; font-size: 0.8rem; margin: 0; font-weight: 700;">${d.specialty} | ${d.city || 'دمشق'}</p>
                         
                         <div style="display: flex; gap: 10px; margin-top: 12px;">
                             ${d.certificate ? `<a href="${d.certificate}" target="_blank" style="font-size: 10px; background: rgba(197, 160, 33, 0.1); color: var(--gold); padding: 5px 10px; border-radius: 8px; text-decoration: none; border: 1px solid var(--border-rgba); font-weight: 800;"><i class="fas fa-file-medical"></i> عرض الشهادة</a>` : ''}
