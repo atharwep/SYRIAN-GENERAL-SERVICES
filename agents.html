@@ -12,7 +12,9 @@
 
     <nav class="glass-nav">
         <a href="index.html" class="logo-container">
-            <div class="logo-box">ب</div>
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="معاملاتي">
+            </div>
             <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
         </a>
         <div class="nav-links" id="nav-menu">
@@ -45,24 +47,39 @@
                         style="display: none; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 800; text-align: center;">
                     </div>
 
-                    <div class="grid grid-2">
+                    <div class="grid grid-3">
                         <div class="form-group">
-                            <label>رقم هاتف المستخدم</label>
-                            <input type="text" id="target-phone" class="form-input" placeholder="09xxxxxxxx">
+                            <label>رقم هاتف المستخدم المستهدف</label>
+                            <div style="display:flex; gap:5px;">
+                                <input type="text" id="target-phone" class="form-input" placeholder="09xxxxxxxx"
+                                    maxlength="10">
+                                <button class="btn btn-outline" onclick="verifyTarget()"
+                                    style="padding:0 15px; min-width:auto;"><i class="fas fa-search"></i></button>
+                            </div>
+                            <div id="target-preview"
+                                style="display:none; margin-top:5px; font-size:0.75rem; font-weight:800; color:#16a34a;">
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>عدد النقاط</label>
-                            <input type="number" id="points-amount" class="form-input" placeholder="أدخل الكمية">
+                            <label>العملة</label>
+                            <select id="currency" class="form-input">
+                                <option value="SYP">ليرة سورية (SYP)</option>
+                                <option value="USD">دولار أمريكي (USD)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>المبلغ / النقاط</label>
+                            <input type="number" id="points-amount" class="form-input" placeholder="0.00">
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 15px; margin-top: 20px;">
-                        <button onclick="processAction('DEPOSIT')" class="btn btn-primary"
-                            style="flex: 1; padding: 18px; font-size: 1.1rem; background: #16a34a; border-radius: 20px;">📥
-                            إيداع (شحن نقاط)</button>
-                        <button onclick="processAction('WITHDRAW')" class="btn btn-outline"
-                            style="flex: 1; padding: 18px; font-size: 1.1rem; border: 2px solid #dc2626; color: #dc2626; border-radius: 20px;">📤
-                            سحب (قبض كاش)</button>
+                    <div style="display: flex; gap: 15px; margin-top: 25px;">
+                        <button id="depositBtn" onclick="processAction('DEPOSIT')" class="btn btn-primary"
+                            style="flex: 1; padding: 20px; font-size: 1.1rem; background: #10b981; border-radius: 20px; border:none; color:white;">📥
+                            إيداع فوري (شحن)</button>
+                        <button id="withdrawBtn" onclick="processAction('WITHDRAW')" class="btn btn-outline"
+                            style="flex: 1; padding: 20px; font-size: 1.1rem; border: 2px solid #ef4444; color: #ef4444; border-radius: 20px; background:transparent;">📤
+                            سحب فوري (كاش)</button>
                     </div>
 
                     <div
@@ -95,26 +112,59 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        function processAction(type) {
+        async function verifyTarget() {
             const phone = document.getElementById('target-phone').value;
-            const points = parseInt(document.getElementById('points-amount').value);
+            const preview = document.getElementById('target-preview');
+            if (phone.length < 10) return;
+
+            preview.style.display = 'block';
+            preview.innerText = "جاري التحقق...";
+            preview.style.color = "#64748B";
+
+            const user = await Auth.findUserByPhone(phone);
+            if (user) {
+                preview.innerText = `✅ مستخدم صالح: ${user.name}`;
+                preview.style.color = "#10b981";
+            } else {
+                preview.innerText = `❌ الرقم غير صحيح أو غير مسجل`;
+                preview.style.color = "#ef4444";
+            }
+        }
+
+        async function processAction(type) {
+            const phone = document.getElementById('target-phone').value;
+            const points = parseFloat(document.getElementById('points-amount').value);
+            const currency = document.getElementById('currency').value;
             const status = document.getElementById('status-msg');
 
             if (!phone || isNaN(points) || points <= 0) {
-                showMsg("يرجى إدخال رقم هاتف صحيح وكمية نقاط صالحة", "#fee2e2", "#dc2626");
+                showMsg("يرجى إدخال رقم هاتف صحيح ومبلغ صالح", "#fee2e2", "#dc2626");
                 return;
             }
 
-            // For withdrawal, points are deducted from user (negative for the system to subtract)
-            const finalAmount = (type === 'DEPOSIT') ? points : -points;
-            const title = (type === 'DEPOSIT') ? "إيداع نقاط عبر وكيل" : "سحب نقاط عبر وكيل";
+            // Verify again before processing
+            const user = await Auth.findUserByPhone(phone);
+            if (!user) {
+                showMsg("فشل العملية: الرقم غير مسجل في النظام", "#fee2e2", "#dc2626");
+                return;
+            }
 
-            const result = Store.updateUserBalance(phone, finalAmount, title, Store.user.role);
+            const actionText = (type === 'DEPOSIT') ? 'شحن' : 'سحب';
+            if (!confirm(`⚠️ تأكيد العملية الفورية:\n\nنوع العملية: ${actionText}\nالمستهدف: ${user.name}\nالمبلغ: ${points.toLocaleString()} ${currency}`)) {
+                return;
+            }
+
+            const finalAmount = (type === 'DEPOSIT') ? points : -points;
+            const title = (type === 'DEPOSIT') ? "إيداع فوري عبر وكيل" : "سحب فوري عبر وكيل";
+
+            const result = Store.updateUserBalance(phone, finalAmount, currency, title, Store.user.role);
 
             if (result.success) {
-                showMsg(`تمت العملية بنجاح! الرصيد الجديد للمشترك: ${result.newBalance} نقطة`, "#dcfce7", "#16a34a");
+                showMsg(`✅ تمت العملية بنجاح! الرصيد الجديد للمشترك: ${result.newBalance.toLocaleString()} ${currency}`, "#dcfce7", "#16a34a");
                 UI.updateNavbar();
-                addLog(phone, type, points);
+                addLog(phone, type, points, currency);
+                // Clear amount
+                document.getElementById('points-amount').value = '';
             } else {
                 showMsg(result.message, "#fee2e2", "#dc2626");
             }
@@ -126,17 +176,21 @@
             status.style.backgroundColor = bg;
             status.style.color = color;
             status.innerText = text;
+            setTimeout(() => { status.style.display = 'none'; }, 8000);
         }
 
-        function addLog(phone, type, points) {
+        function addLog(phone, type, points, currency) {
             const list = document.getElementById('agent-logs');
             if (list.innerHTML.includes('بانتظار')) list.innerHTML = '';
 
             const time = new Date().toLocaleTimeString('ar-SY');
             list.innerHTML = `
                 <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; font-weight: 700;">
-                    <span>${phone}</span>
-                    <span style="color: ${type === 'DEPOSIT' ? '#16a34a' : '#dc2626'}">${type === 'DEPOSIT' ? '+' : '-'}${points}</span>
+                    <div>
+                        <span style="display:block;">${phone}</span>
+                        <span style="font-size:0.6rem; color:gray;">${time}</span>
+                    </div>
+                    <span style="color: ${type === 'DEPOSIT' ? '#16a34a' : '#dc2626'}">${type === 'DEPOSIT' ? '+' : '-'}${points.toLocaleString()} ${currency}</span>
                 </div>
             ` + list.innerHTML;
         }

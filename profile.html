@@ -220,8 +220,10 @@
 
     <nav class="glass-nav">
         <a href="index.html" class="logo-container" style="text-decoration: none; color: white;">
-            <div class="logo-box">ب</div>
-            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="معاملاتي">
+            </div>
+            <div style="font-weight: 950; font-size: 19px; color: white;">معاملاتي</div>
         </a>
         <div id="nav-right" style="display: flex; align-items: center; gap: 15px;"></div>
     </nav>
@@ -230,8 +232,7 @@
         <!-- Avatar Section -->
         <div class="avatar-section">
             <div class="avatar-wrapper">
-                <img id="profile-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" class="avatar-img"
-                    alt="Avatar">
+                <img id="profile-avatar" src="assets/nuser.png" class="avatar-img" alt="Avatar">
                 <label for="avatar-upload" class="avatar-edit">
                     <i class="fas fa-camera"></i>
                 </label>
@@ -312,7 +313,7 @@
             // Load Info
             document.getElementById('profile-name').innerText = Store.user.name;
             document.getElementById('profile-phone').innerText = Store.user.phone;
-            document.getElementById('profile-avatar').src = Store.user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + Store.user.name;
+            document.getElementById('profile-avatar').src = Store.user.avatar || 'assets/nuser.png';
             document.getElementById('edit-name').value = Store.user.name;
 
             // Generate QR Code

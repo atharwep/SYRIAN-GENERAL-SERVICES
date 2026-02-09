@@ -35,8 +35,10 @@
 
     <nav class="glass-nav">
         <a href="index.html" class="logo-container">
-            <div class="logo-box">ب</div>
-            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="معاملاتي">
+            </div>
+            <div style="font-weight: 950; font-size: 19px; color: white;">معاملاتي</div>
         </a>
         <div class="nav-links" id="nav-menu">
             <a href="index.html">الرئيسية</a>
@@ -78,17 +80,18 @@
                         <input type="text" class="form-input" placeholder="09xxxxxxxx" required>
                     </div>
                     <div class="form-group">
-                        <label>المدينة / المحافظة</label>
-                        <select class="form-input" style="appearance: none;">
-                            <option>دمشق</option>
-                            <option>ريف دمشق</option>
-                            <option>حلب</option>
-                            <option>حمص</option>
-                            <option>اللاذقية</option>
-                            <option>طرطوس</option>
-                            <option>حماة</option>
+                        <label>المحافظة</label>
+                        <select id="gov-select" class="form-input" style="appearance: none;"
+                            onchange="LocationHelper.updateCities(this.value, 'city-select')">
+                            <option value="">اختر المحافظة...</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>المدينة / المنطقة</label>
+                    <select id="city-select" class="form-input" style="appearance: none;">
+                        <option value="">اختر المدينة...</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -111,9 +114,14 @@
     </div>
 
     <script src="js/config.js"></script>
+    <script src="js/syria-data.js"></script>
     <script src="js/notifications.js"></script>
     <script src="js/auth.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            LocationHelper.initGovernorates('gov-select');
+        });
+
         function selectType(el, type) {
             document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
             el.classList.add('selected');

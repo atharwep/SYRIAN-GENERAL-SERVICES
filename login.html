@@ -4,12 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - بوابة الخدمات العامة</title>
+    <title>تسجيل الدخول - معاملاتي</title>
     <link rel="stylesheet" href="css/style.css">
 
     <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <!-- Security & Integration Systems -->
+    <script src="js/security.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/twilio-sms.js"></script>
 
     <style>
         .auth-container {
@@ -18,16 +24,17 @@
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
-            background: #F8FAFC;
         }
 
         .auth-card {
             width: 100%;
             max-width: 450px;
-            background: white;
-            border-radius: 30px;
-            padding: 40px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 50px 40px;
+            border: 1px solid var(--border-rgba);
+            box-shadow: var(--card-shadow);
             transition: all 0.3s ease;
         }
 
@@ -75,8 +82,10 @@
 
     <nav class="glass-nav">
         <a href="index.html" class="logo-container">
-            <div class="logo-box">ب</div>
-            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="معاملاتي">
+            </div>
+            <div style="font-weight: 950; font-size: 19px; color: white;">معاملاتي</div>
         </a>
     </nav>
 
@@ -85,9 +94,11 @@
         <div id="login-step" class="auth-card step active">
             <div class="text-center mb-2">
                 <div
-                    style="width: 70px; height: 70px; background: white; border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; color: var(--gold);">
+                    style="width: 70px; height: 70px; background: rgba(197, 160, 33, 0.1); border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; color: var(--gold); box-shadow: 0 0 20px rgba(197, 160, 33, 0.2);">
                     🗝️</div>
-                <h2 style="font-weight: 900; font-size: 1.8rem;">دخول المشتركين</h2>
+                <h2 style="font-weight: 950; font-size: 1.8rem; color: white;">دخول المشتركين</h2>
+                <p style="color: var(--text-muted); font-weight: 700; font-size: 0.9rem; margin-top: 8px;">أدخل بياناتك
+                    للولوج إلى عالمك الذكي</p>
             </div>
             <form id="login-form" style="margin-top: 30px;">
                 <div id="error-msg"
@@ -107,18 +118,20 @@
             </form>
             <div class="text-center mt-4">
                 <button onclick="goToReset()"
-                    style="background: none; border: none; color: var(--gold); font-weight: 800; cursor: pointer; font-size: 0.85rem;">نسيت
+                    style="background: none; border: none; color: var(--gold); font-weight: 900; cursor: pointer; font-size: 0.9rem; transition: 0.3s;">نسيت
                     كلمة المرور؟</button>
             </div>
 
-            <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(0,0,0,0.05);">
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border-rgba);">
 
             <div class="text-center">
-                <p style="font-size: 0.9rem; font-weight: 700; color: #64748B; margin-bottom: 15px;">ليس لديك حساب؟</p>
-                <a href="register.html" class="btn btn-outline"
-                    style="width: 100%; justify-content: center; padding: 15px;">إنشاء اشتراك جديد ✨</a>
+                <p style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted); margin-bottom: 20px;">ليس لديك
+                    حساب؟</p>
+                <a href="register.html" class="btn btn-primary"
+                    style="width: 100%; justify-content: center; padding: 18px; border-radius: 20px;">إنشاء اشتراك جديد
+                    ✨</a>
                 <a href="register.html?mode=doctor"
-                    style="display: block; margin-top: 15px; color: var(--gold); font-weight: 800; font-size: 0.85rem; text-decoration: none;">
+                    style="display: block; margin-top: 20px; color: var(--gold); font-weight: 900; font-size: 0.9rem; text-decoration: none;">
                     👨‍⚕️ للأطباء: انضم لفريقنا الطبي
                 </a>
             </div>
@@ -246,7 +259,7 @@
             if (verifyRes.success) {
                 if (currentFlow === 'LOGIN') {
                     Auth.finalizeLogin(pendingUser, pendingToken);
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'index.html';
                 } else {
                     showStep('reset-step');
                 }

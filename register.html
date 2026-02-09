@@ -4,8 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إنشاء حساب - بوابة الخدمات العامة</title>
+    <title>إنشاء حساب - معاملاتي</title>
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <!-- Security & Integration Systems -->
+    <script src="js/security.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/twilio-sms.js"></script>
+
     <style>
         .auth-container {
             display: flex;
@@ -13,16 +24,17 @@
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
-            background: #F8FAFC;
         }
 
         .auth-card {
             width: 100%;
             max-width: 500px;
-            background: white;
-            border-radius: 30px;
-            padding: 40px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 50px 40px;
+            border: 1px solid var(--border-rgba);
+            box-shadow: var(--card-shadow);
             transition: all 0.3s ease;
         }
 
@@ -43,8 +55,10 @@
 
     <nav class="glass-nav">
         <a href="index.html" class="logo-container">
-            <div class="logo-box">ب</div>
-            <div style="font-weight: 900; font-size: 18px;">بوابة الخدمات العامة</div>
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="معاملاتي">
+            </div>
+            <div style="font-weight: 950; font-size: 19px; color: white;">معاملاتي</div>
         </a>
     </nav>
 
@@ -53,10 +67,11 @@
         <div id="register-step" class="auth-card step active">
             <div class="text-center mb-2">
                 <div
-                    style="width: 70px; height: 70px; background: white; border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; box-shadow: 0 10px 20px rgba(197, 160, 33, 0.2); color: var(--gold);">
+                    style="width: 70px; height: 70px; background: rgba(197, 160, 33, 0.1); border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; box-shadow: 0 0 20px rgba(197, 160, 33, 0.3); color: var(--gold);">
                     ✨</div>
-                <h2 style="font-weight: 900; font-size: 2rem;">انضم إلينا</h2>
-                <p style="color: #64748B; font-weight: 700; font-size: 0.9rem; margin-top: 10px;">باشر تجربتك الملكية
+                <h2 style="font-weight: 950; font-size: 2rem; color: white;">انضم إلينا</h2>
+                <p style="color: var(--text-muted); font-weight: 700; font-size: 0.95rem; margin-top: 10px;">باشر تجربتك
+                    الملكية
                     بإنشاء حساب جديد</p>
             </div>
 
@@ -78,11 +93,12 @@
 
                 <!-- Doctor Registration Toggle -->
                 <div class="doctor-toggle-container"
-                    style="margin: 15px 0; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 12px;">
+                    style="margin: 25px 0; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 18px; border: 1px solid var(--border-rgba);">
                     <label
-                        style="display: flex; align-items: center; cursor: pointer; gap: 10px; font-weight: 700; color: var(--text-color);">
-                        <input type="checkbox" id="is-doctor-check" onchange="toggleDoctorFields()">
-                        التسجيل كطبيب
+                        style="display: flex; align-items: center; cursor: pointer; gap: 12px; font-weight: 800; color: var(--gold); font-size: 0.9rem;">
+                        <input type="checkbox" id="is-doctor-check" onchange="toggleDoctorFields()"
+                            style="width: 18px; height: 18px; accent-color: var(--gold);">
+                        التسجيل كطبيب مهني
                     </label>
                 </div>
 
@@ -106,16 +122,17 @@
 
                     <div class="input-group">
                         <i class="fas fa-map-marker-alt"></i>
+                        <select id="doc-gov" onchange="LocationHelper.updateCities(this.value, 'doc-city')"
+                            style="width: 100%; border: none; background: transparent; outline: none; padding: 0 10px; color: white;">
+                            <option value="">اختر المحافظة...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-city"></i>
                         <select id="doc-city"
-                            style="width: 100%; border: none; background: transparent; outline: none; padding: 0 10px;">
-                            <option value="">اختر المدينة...</option>
-                            <option value="دمشق">دمشق</option>
-                            <option value="حلب">حلب</option>
-                            <option value="اللاذقية">اللاذقية</option>
-                            <option value="حمص">حمص</option>
-                            <option value="طرطوس">طرطوس</option>
-                            <option value="حماة">حماة</option>
-                            <option value="السويداء">السويداء</option>
+                            style="width: 100%; border: none; background: transparent; outline: none; padding: 0 10px; color: white;">
+                            <option value="">اختر المدينة/المنطقة...</option>
                         </select>
                     </div>
 
@@ -129,18 +146,18 @@
                         <input type="number" id="doc-price" placeholder="سعر الكشفية (نقطة)">
                     </div>
 
-                    <div style="margin-top: 10px;">
+                    <div style="margin-top: 20px;">
                         <label
-                            style="font-size: 12px; font-weight: 700; color: #64748B; display: block; margin-bottom: 5px;">صورة
+                            style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 8px;">صورة
                             الشهادة المهنية</label>
-                        <input type="file" id="doc-cert" accept="image/*" class="form-input" style="padding: 5px;">
+                        <input type="file" id="doc-cert" accept="image/*" class="form-input" style="padding: 10px;">
                     </div>
 
-                    <div style="margin-top: 10px; margin-bottom: 15px;">
+                    <div style="margin-top: 15px; margin-bottom: 25px;">
                         <label
-                            style="font-size: 12px; font-weight: 700; color: #64748B; display: block; margin-bottom: 5px;">صورة
+                            style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 8px;">صورة
                             الهوية الشخصية</label>
-                        <input type="file" id="doc-id" accept="image/*" class="form-input" style="padding: 5px;">
+                        <input type="file" id="doc-id" accept="image/*" class="form-input" style="padding: 10px;">
                     </div>
                 </div>
 
@@ -182,6 +199,7 @@
     </div>
 
     <script src="js/config.js"></script>
+    <script src="js/syria-data.js"></script>
     <script src="js/auth.js"></script>
 
     <div id="error-msg"
@@ -249,6 +267,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            LocationHelper.initGovernorates('doc-gov');
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('mode') === 'doctor') {
                 document.getElementById('is-doctor-check').checked = true;

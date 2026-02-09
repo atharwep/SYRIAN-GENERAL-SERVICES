@@ -1,6 +1,6 @@
 {
-    "name": "بوابة الخدمات العامة",
-    "short_name": "بوابة الخدمات",
+    "name": "معاملاتي - منصة الخدمات الرقمية",
+    "short_name": "معاملاتي",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#0f172a",

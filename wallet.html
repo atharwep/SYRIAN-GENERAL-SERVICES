@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المحفظة الملكية - بوابة الخدمات العامة</title>
+    <title>المحفظة الملكية - معاملاتي</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/notifications.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -676,21 +676,45 @@
                         })
                     });
 
-                    const data = await res.json();
                     if (res.ok) {
                         Notify.show("نجاح التحويل", `تم إرسال المبلغ بنجاح إلى ${receiverName}.`, "fas fa-check-double");
                         setTimeout(() => window.location.reload(), 2000);
                     } else {
-                        alert("❌ " + data.message);
+                        const data = await res.json();
+                        alert("❌ فشل التحويل: " + (data.message || "خطأ غير معروف"));
+                        // Fallback to local if appropriate
+                        if (!res.status || res.status >= 500) performLocalTransfer(phone, amount, activeCurrency, receiverName);
                     }
                 } catch (err) {
-                    alert("خطأ في الاتصال بالسيرفر");
+                    console.error("Connection error during transfer:", err);
+                    performLocalTransfer(phone, amount, activeCurrency, receiverName);
                 } finally {
                     btn.disabled = false;
                     btn.innerText = "تأكيد التحويل الآن";
                 }
             };
         });
+
+        function performLocalTransfer(phone, amount, currency, receiverName) {
+            // Local Fallback for Immediate Result
+            const decRes = Store.updateUserBalance(Store.user.phone, -amount, currency, `تحويل صادر إلى ${receiverName}`, "USER");
+            if (decRes.success) {
+                const incRes = Store.updateUserBalance(phone, amount, currency, `تحويل وارد من ${Store.user.name}`, "USER");
+                if (incRes.success) {
+                    Notify.show("نجاح فوري (محلي) ⚡", `تم التحويل بنجاح للمستلم: ${receiverName}`, "fas fa-bolt");
+                    // Update session user balance
+                    Store.user = Store.getUsers().find(u => u.phone === Store.user.phone);
+                    localStorage.setItem('wusul_user', JSON.stringify(Store.user));
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    // Refund sender if receiver failed
+                    Store.updateUserBalance(Store.user.phone, amount, currency, "استرداد فشل تحويل", "USER");
+                    alert("❌ فشل التحويل المحلي: " + incRes.message);
+                }
+            } else {
+                alert("❌ فشل التحويل المحلي: " + decRes.message);
+            }
+        }
 
         function switchCurrency(curr) {
             activeCurrency = curr;
@@ -743,20 +767,26 @@
                 el.innerHTML = '<div style="text-align:center; padding:40px; color:#52525B; font-weight:800;">لا يوجد عمليات مسجلة</div>';
                 return;
             }
-            el.innerHTML = list.map(tx => `
-            <div class="tx-item">
-                <div class="tx-icon ${tx.amount > 0 ? 'tx-type-plus' : 'tx-type-minus'}">
-                    <i class="fas ${tx.amount > 0 ? 'fa-arrow-down-left' : 'fa-arrow-up-right'}"></i>
+            // Using a structured div approach that looks like a table for history
+            el.innerHTML = `
+                <div style="display: grid; grid-template-columns: 50px 1fr 100px; padding: 10px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 0.7rem; font-weight: 800; color: #64748B;">
+                    <span></span>
+                    <span>التفاصيل</span>
+                    <span style="text-align: left;">المبلغ</span>
+                </div>
+            ` + list.map(tx => `
+            <div class="tx-item" style="border: none; margin-bottom: 5px; background: rgba(255,255,255,0.02); display: grid; grid-template-columns: 50px 1fr 100px; align-items: center;">
+                <div class="tx-icon ${tx.amount > 0 ? 'tx-type-plus' : 'tx-type-minus'}" style="width: 35px; height: 35px; border-radius: 10px;">
+                    <i class="fas ${tx.amount > 0 ? 'fa-arrow-down-left' : 'fa-arrow-up-right'}" style="font-size: 0.8rem;"></i>
                 </div>
                 <div class="tx-info">
-                    <h5>${tx.title}</h5>
-                    <p>${new Date(tx.createdAt).toLocaleString('ar-SY')}</p>
+                    <h5 style="font-size: 0.8rem;">${tx.title}</h5>
+                    <p style="font-size: 0.6rem;">${new Date(tx.createdAt || tx.date).toLocaleString('ar-SY')}</p>
                 </div>
-                <div class="tx-amount">
-                    <div class="val" style="color:${tx.amount > 0 ? '#00D9A5' : '#EF4444'}">
+                <div class="tx-amount" style="text-align: left;">
+                    <div class="val" style="color:${tx.amount > 0 ? '#00D9A5' : '#EF4444'}; font-size: 0.9rem;">
                         ${tx.amount > 0 ? '+' : ''}${tx.amount.toLocaleString()}
                     </div>
-                    <span class="status">${tx.status}</span>
                 </div>
             </div>
         `).join('');
@@ -773,7 +803,7 @@
         }
 
         function showTopup(curr) {
-            alert(`لشحن محفظة ${curr}، يرجى مراجعة أقرب وكيل معتمد أو مكتب الشركة.`);
+            window.location.href = 'wallet-deposit.html';
         }
 
         let qrGenerated = false;
