@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الملف الطبي الملكي - معاملاتي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        .medical-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-rgba);
+            border-radius: 35px;
+            padding: 30px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .vital-badge {
+            background: rgba(197, 160, 33, 0.1);
+            color: var(--gold);
+            padding: 15px 25px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid var(--border-rgba);
+        }
+
+        .record-entry {
+            border-right: 4px solid var(--gold);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            transition: 0.3s;
+        }
+
+        .record-entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="glass-nav">
+        <a href="dashboard.html" class="logo-container">
+            <div class="logo-box"><img src="assets/logo.png" alt="Moamalaty"></div>
+            <div>
+                <div style="font-weight: 950; font-size: 20px; color: white;">ملفي الطبي <span
+                        style="font-size: 12px; color: var(--gold);">Royal Health</span></div>
+                <div style="font-size: 8px; color: var(--gold); font-weight: 800; letter-spacing: 1px;">E2EE SECURED
+                    RECORD</div>
+            </div>
+        </a>
+    </nav>
+
+    <div class="container" style="padding-top: 20px;">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <h1 style="color: white; font-weight: 950; font-size: 2.22rem;">أضبارتي الصحية الذكية 🩺</h1>
+                <p style="color: var(--text-muted); font-weight: 700;">سجل طبي شامل موثق ومشفر بالكامل</p>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="openShareQR()" class="btn btn-primary"
+                    style="padding: 12px 25px; border-radius: 15px;">
+                    <i class="fas fa-qrcode"></i> مشاركة الملف (QR)
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-3" style="margin-bottom: 30px; gap: 20px;">
+            <div class="vital-badge">
+                <p style="font-size: 0.75rem; font-weight: 800; margin-bottom: 5px; opacity: 0.7;">فصيلة الدم</p>
+                <h2 id="blood-type" style="font-weight: 950; font-size: 1.8rem;">O+</h2>
+            </div>
+            <div class="vital-badge"
+                style="border-color: #ef4444; background: rgba(239, 68, 68, 0.05); color: #ef4444;">
+                <p style="font-size: 0.75rem; font-weight: 800; margin-bottom: 5px; opacity: 0.7;">الحساسية</p>
+                <h2 id="allergies" style="font-weight: 950; font-size: 1.4rem;">البنسلين</h2>
+            </div>
+            <div class="vital-badge"
+                style="border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); color: #3b82f6;">
+                <p style="font-size: 0.75rem; font-weight: 800; margin-bottom: 5px; opacity: 0.7;">آخر زيارة</p>
+                <h2 style="font-weight: 950; font-size: 1.4rem;">منذ 3 أيام</h2>
+            </div>
+        </div>
+
+        <div class="medical-card">
+            <h3 style="font-weight: 900; margin-bottom: 20px; color: var(--gold);"><i class="fas fa-file-medical"></i>
+                التشخيصات والتقارير</h3>
+            <div id="medical-history">
+                <div class="record-entry">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-weight: 950; color: white;">د. عمار الحموي - أخصائي قلبية</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700;">2024/05/12</span>
+                    </div>
+                    <p style="color: white; font-weight: 700; opacity: 0.8; line-height: 1.6;">تم إجراء فحص دوري، الضغط
+                        120/80، حالة القلب مستقرة ولا يوجد ما يدعو للقلق. ينصح بالتقليل من الصوديوم.</p>
+                </div>
+            </div>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 15px;">+ رفع تقرير فحص إضافي</button>
+        </div>
+
+        <div class="medical-card">
+            <h3 style="font-weight: 900; margin-bottom: 20px; color: #3b82f6;"><i class="fas fa-pills"></i> الوصفات
+                الطبية (Prescriptions)</h3>
+            <div id="prescriptions-list">
+                <div
+                    style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4 style="color: white; font-weight: 800; margin-bottom: 5px;">Panadol Extra</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">حبة عند اللزوم - لمدة أسبوع</p>
+                    </div>
+                    <button class="btn-icon">💊</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qrModal" class="modal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(15px);">
+        <div class="medical-card" style="max-width: 400px; text-align: center; background: white;">
+            <h3 style="color: black; font-weight: 950; margin-bottom: 10px;">الملف الصحي الملكي 🛡️</h3>
+            <p style="color: #64748B; font-size: 0.8rem; margin-bottom: 25px; font-weight: 700;">شارك هذا الرمز مع
+                الطبيب أو النقطة الطبية حصراً</p>
+            <div id="qrcode"
+                style="display: inline-block; padding: 20px; background: white; border-radius: 20px; border: 1px solid #EEE;">
+            </div>
+            <p style="color: black; font-weight: 950; margin-top: 20px;" id="patient-name-qr">...</p>
+            <button onclick="document.getElementById('qrModal').style.display='none'" class="btn btn-primary"
+                style="width:100%; margin-top: 20px;">إغلاق الآمن</button>
+        </div>
+    </div>
+
+    <script src="js/medical-core.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Store.user) return window.location.href = 'login.html';
+            document.getElementById('patient-name-qr').innerText = Store.user.name;
+
+            // Load real health data
+            const patient = await MedicalCore.getPatient(Store.user.id || Store.user.phone);
+            if (patient) {
+                document.getElementById('blood-type').innerText = patient.blood_type || 'غير محدد';
+                document.getElementById('allergies').innerText = patient.allergies || 'لا يوجد';
+
+                // Load history
+                const records = await MedicalCore.getRecords(patient.id);
+                renderRecords(records);
+            }
+        });
+
+        function renderRecords(records) {
+            const list = document.getElementById('medical-history');
+            if (!records || records.length === 0) {
+                list.innerHTML = '<p style="color:gray; text-align:center; padding:20px;">لا يوجد سجلات طبية سابقة</p>';
+                return;
+            }
+
+            list.innerHTML = records.map(r => `
+                <div class="record-entry">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-weight: 950; color: white;">${r.doctor_name || 'طبيب متخصص'}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700;">${new Date(r.visit_date || r.created_at).toLocaleDateString('ar-SY')}</span>
+                    </div>
+                    <p style="color: white; font-weight: 700; opacity: 0.8; line-height: 1.6;">${r.diagnosis || r.notes}</p>
+                </div>
+            `).join('');
+        }
+
+        async function openShareQR() {
+            const modal = document.getElementById('qrModal');
+            const qrBox = document.getElementById('qrcode');
+            qrBox.innerHTML = '';
+
+            const patient = await MedicalCore.getPatient(Store.user.id || Store.user.phone);
+            if (!patient) return alert("يرجى ملء بياناتك الصحية أولاً");
+
+            const token = await MedicalCore.createShareLink(patient.id);
+            const secureLink = `https://muamalati.app/record-viewer.html?token=${token}`;
+
+            new QRCode(qrBox, {
+                text: secureLink,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            modal.style.display = 'flex';
+        }
+    </script>
+</body>
+
+</html>

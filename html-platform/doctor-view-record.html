@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الطبيب - معاينة الأضبارة - معاملاتي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script src="js/config.js"></script>
+    <script src="js/security.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/medical-core.js"></script>
+
+    <style>
+        .doctor-card {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid var(--border-rgba);
+            border-radius: 25px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .form-control:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box"><img src="assets/logo.png" alt="Logo"></div>
+            <div style="font-weight: 950; font-size: 19px; color: white;">بوابة الأطباء</div>
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html">الرئيسية</a>
+            <a href="patient-record.html">عرض ملفي الشخصي</a>
+        </div>
+    </nav>
+
+    <div class="container" style="margin-top: 30px;">
+        <h1 style="color: white; font-weight: 950; margin-bottom: 30px;">إدارة ملف مريض <span
+                style="color: var(--gold); font-size: 0.8em;">(عرض طبيب)</span></h1>
+
+        <!-- Patient Status Header -->
+        <div class="doctor-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 id="p-name" style="color: white; margin: 0 0 5px 0;">جري تحميل البيانات...</h2>
+                    <p style="color: #64748B; margin: 0;">رقم الملف: <span id="p-id"
+                            style="color: var(--gold);">--</span></p>
+                </div>
+                <div style="text-align: left;">
+                    <span
+                        style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 5px 12px; border-radius: 50px; font-weight: 800; font-size: 0.8rem;">حساسية:
+                        <span id="p-allergies">--</span></span>
+                    <div style="margin-top: 5px; color: #94a3b8; font-size: 0.8rem;">فصيلة الدم: <span id="p-blood"
+                            style="color: white; font-weight: 900;">--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2" style="gap: 20px;">
+            <!-- New Diagnosis Form -->
+            <div class="doctor-card">
+                <h3 style="color: var(--gold); font-weight: 900; margin-bottom: 20px;">✍️ إضافة تشخيص جديد</h3>
+                <form id="diagnosis-form">
+                    <label class="form-label">نوع الزيارة</label>
+                    <select id="visit-type" class="form-control">
+                        <option value="كشفية عادية">كشفية عادية (عيادة)</option>
+                        <option value="طوارئ">حالة طوارئ</option>
+                        <option value="استشارة عن بعد">استشارة أونلاين</option>
+                        <option value="متابعة دورية">متابعة دورية</option>
+                    </select>
+
+                    <label class="form-label">التشخيص المبدئي</label>
+                    <input type="text" id="diagnosis" class="form-control" placeholder="مثال: التهاب حلق حاد" required>
+
+                    <label class="form-label">الوصفة الطبية / الإجراء العلاجي</label>
+                    <textarea id="prescription" class="form-control" rows="4"
+                        placeholder="الأدوية، التحاليل المطلوبة، أو الإجراءات المتخذة..." required></textarea>
+
+                    <label class="form-label">ملاحظات خاصة (تظهر للطبيب فقط)</label>
+                    <textarea id="notes" class="form-control" rows="2" placeholder="ملاحظات سرية..."></textarea>
+
+                    <button type="submit" class="btn btn-primary"
+                        style="width: 100%; padding: 15px; font-weight: 900;">حفظ وإضافة للسجل ✅</button>
+                </form>
+            </div>
+
+            <!-- History View -->
+            <div class="doctor-card">
+                <h3 style="color: white; font-weight: 900; margin-bottom: 20px;">📜 السجل الطبي السابق</h3>
+                <div id="history-list" style="max-height: 500px; overflow-y: auto; padding-right: 5px;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate picking a patient (In real app, passed via URL ?patient_id=...)
+        // For demo, we default to the dummy patient 'p_1' if no valid user is logged in or if user is doctor viewing himself
+        // Just for demo purposes, we fetch the first available patient.
+
+        let currentPatientId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Find a patient
+            const patients = JSON.parse(localStorage.getItem(MedicalCore.TABLES.PATIENTS) || '[]');
+            const patient = patients[0]; // Logic: Get first patient for demo
+
+            if (patient) {
+                currentPatientId = patient.id;
+                loadPatientHeader(patient);
+                loadHistory(patient.id);
+            } else {
+                alert("لا يوجد مرضى في قاعدة البيانات. يرجى إنشاء ملف مريض أولاً.");
+                window.location.href = 'patient-record.html';
+            }
+        });
+
+        function loadPatientHeader(p) {
+            document.getElementById('p-name').innerText = p.full_name;
+            document.getElementById('p-id').innerText = "#" + p.id;
+            document.getElementById('p-blood').innerText = p.blood_type;
+            document.getElementById('p-allergies').innerText = p.allergies;
+        }
+
+        function loadHistory(pid) {
+            const records = MedicalCore.getRecords(pid);
+            const list = document.getElementById('history-list');
+
+            if (records.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#666;">لا يوجد سجلات سابقة</p>';
+                return;
+            }
+
+            list.innerHTML = records.map(r => `
+                <div style="background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; border-right: 3px solid var(--gold);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: var(--gold); font-size: 0.8rem; font-weight: 800;">${new Date(r.created_at).toLocaleDateString()}</span>
+                        <span style="color: #94a3b8; font-size: 0.8rem;">${r.doctor_name || 'د. غير محدد'}</span>
+                    </div>
+                    <h4 style="color: white; margin: 0 0 5px 0;">${r.diagnosis}</h4>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin: 0;">${r.prescription}</p>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('diagnosis-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!currentPatientId) return;
+
+            const diagnosis = document.getElementById('diagnosis').value;
+            const prescription = document.getElementById('prescription').value;
+            const notes = document.getElementById('notes').value;
+            const doctorName = Store.user ? Store.user.name : "د. زائر";
+            const doctorId = Store.user ? Store.user.id : "doc_guest";
+
+            const newRecord = {
+                patient_id: currentPatientId,
+                doctor_id: doctorId,
+                doctor_name: doctorName, // Storing name for easier display
+                diagnosis: diagnosis,
+                prescription: prescription,
+                notes: notes,
+                visit_date: new Date().toISOString()
+            };
+
+            MedicalCore.addRecord(newRecord);
+            alert("تم إضافة التشخيص بنجاح ✅");
+
+            // Reset form
+            e.target.reset();
+            loadHistory(currentPatientId);
+        });
+    </script>
+</body>
+
+</html>

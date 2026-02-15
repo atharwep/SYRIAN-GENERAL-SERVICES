@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب - معاملاتي</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <!-- Security & Integration Systems -->
+    <script src="js/security.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/twilio-sms.js"></script>
+
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 50px 40px;
+            border: 1px solid var(--border-rgba);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 480px) {
+            .auth-card {
+                padding: 25px;
+                border-radius: 20px;
+            }
+
+            .auth-container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="معاملاتي">
+            </div>
+            <div style="font-weight: 950; font-size: 19px; color: white;">معاملاتي</div>
+        </a>
+    </nav>
+
+    <div class="auth-container">
+        <!-- Step 1: Register Form -->
+        <div id="register-step" class="auth-card step active">
+            <div class="text-center mb-2">
+                <div
+                    style="width: 70px; height: 70px; background: rgba(197, 160, 33, 0.1); border: 2px solid var(--gold); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; box-shadow: 0 0 20px rgba(197, 160, 33, 0.3); color: var(--gold);">
+                    ✨</div>
+                <h2 style="font-weight: 950; font-size: 2rem; color: white;">انضم إلينا</h2>
+                <p style="color: var(--text-muted); font-weight: 700; font-size: 0.95rem; margin-top: 10px;">باشر تجربتك
+                    الملكية
+                    بإنشاء حساب جديد</p>
+            </div>
+
+            <form id="register-form" style="margin-top: 40px;">
+                <div class="form-group">
+                    <label>الاسم الكامل</label>
+                    <input type="text" id="name" class="form-input" placeholder="مثلاً: محمد أحمد" required>
+                </div>
+
+                <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="text" id="phone" class="form-input" placeholder="093xxxxxxx" required>
+                </div>
+
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="reg-password" class="form-input" placeholder="كلمة المرور" required
+                        style="padding-left: 50px;">
+                    <i class="fas fa-eye" id="togglePasswordReg"
+                        style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--gold); cursor: pointer; transition: 0.3s; padding: 10px; pointer-events: all; z-index: 10;"></i>
+                </div>
+
+                <!-- Doctor Registration Toggle -->
+                <div class="doctor-toggle-container"
+                    style="margin: 25px 0; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 18px; border: 1px solid var(--border-rgba);">
+                    <label
+                        style="display: flex; align-items: center; cursor: pointer; gap: 12px; font-weight: 800; color: var(--gold); font-size: 0.9rem;">
+                        <input type="checkbox" id="is-doctor-check" onchange="toggleDoctorFields()"
+                            style="width: 18px; height: 18px; accent-color: var(--gold);">
+                        التسجيل كطبيب مهني
+                    </label>
+                </div>
+
+                <!-- Doctor Specific Fields (Hidden by default) -->
+                <div id="doctor-fields" style="display: none; animation: fadeIn 0.3s ease;">
+                    <div class="input-group">
+                        <i class="fas fa-stethoscope"></i>
+                        <select id="doc-specialty" class="form-input">
+                            <option value="">اختر التخصص...</option>
+                            <option value="عام">طب عام</option>
+                            <option value="قلبية">قلبية</option>
+                            <option value="أطفال">أطفال</option>
+                            <option value="جلدية">جلدية</option>
+                            <option value="أسنان">أسنان</option>
+                            <option value="عيون">عيون</option>
+                            <option value="عظمية">عظمية</option>
+                            <option value="نسائية">نسائية</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <select id="doc-gov" onchange="LocationHelper.updateCities(this.value, 'doc-city')"
+                            class="form-input">
+                            <option value="">اختر المحافظة...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-city"></i>
+                        <select id="doc-city" class="form-input">
+                            <option value="">اختر المدينة/المنطقة...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-clinic-medical"></i>
+                        <input type="text" id="doc-clinic" class="form-input" placeholder="اسم العيادة">
+                    </div>
+
+                    <div class="input-group">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <input type="number" id="doc-price" class="form-input" placeholder="سعر الكشفية (نقطة)">
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 8px;">صورة
+                            الشهادة المهنية</label>
+                        <input type="file" id="doc-cert" accept="image/*" class="form-input" style="padding: 10px;">
+                    </div>
+
+                    <div style="margin-top: 15px; margin-bottom: 25px;">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 8px;">صورة
+                            الهوية الشخصية</label>
+                        <input type="file" id="doc-id" accept="image/*" class="form-input" style="padding: 10px;">
+                    </div>
+                </div>
+
+                <div id="recaptcha-container"></div>
+
+                <div style="margin-bottom: 2rem; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" required id="terms">
+                    <label for="terms" style="margin: 0; font-size: 12px; font-weight: 700; color: #64748B;">أوافق على
+                        <a href="#" style="color: var(--gold);">شروط الخدمة</a> وسياسة الخصوصية</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; padding: 18px; border-radius: 20px; font-size: 1.1rem;">إنشاء الحساب
+                    الآن</button>
+            </form>
+
+            <div class="text-center mt-4">
+                <p style="color: #64748B; font-weight: 700; font-size: 0.9rem;">لديك حساب بالفعل؟ <a href="login.html"
+                        style="color: var(--gold); text-decoration: none; font-weight: 900;">سجل دخولك</a></p>
+            </div>
+        </div>
+
+        <!-- Step 2: OTP Entry -->
+        <div id="otp-step" class="auth-card step">
+            <div class="text-center mb-2">
+                <div style="font-size: 50px; margin-bottom: 20px;">📱</div>
+                <h2 style="font-weight: 900; font-size: 1.8rem;">تأكيد رقم الهاتف</h2>
+                <p style="color: #64748B; font-weight: 700; margin-top: 10px;">أدخل رمز التفعيل الذي أرسلناه لك</p>
+            </div>
+            <form id="otp-form" style="margin-top: 30px;">
+                <div class="form-group">
+                    <input type="text" id="otp-input" class="form-input text-center" maxlength="6"
+                        style="letter-spacing: 12px; font-size: 1.5rem;" placeholder="000000" required>
+                </div>
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; padding: 18px; background: #16a34a;">تفعيل الحساب ✅</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/syria-data.js"></script>
+    <script src="js/auth.js"></script>
+
+    <div id="error-msg"
+        style="display: none; position: fixed; top: 20px; right: 20px; padding: 15px 25px; background: #ef4444; color: white; border-radius: 15px; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2); z-index: 10000; font-weight: 800; animation: slideIn 0.3s ease;">
+    </div>
+
+    <style>
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        #recaptcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+
+    <script>
+        let pendingUser = null;
+        let pendingToken = null;
+
+        function showStep(id) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function toggleDoctorFields() {
+            const isDoctor = document.getElementById('is-doctor-check').checked;
+            const fields = document.getElementById('doctor-fields');
+            if (isDoctor) {
+                fields.style.display = 'block';
+            } else {
+                fields.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            LocationHelper.initGovernorates('doc-gov');
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'doctor') {
+                document.getElementById('is-doctor-check').checked = true;
+                toggleDoctorFields();
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('reg-password').value;
+
+            const isDoctor = document.getElementById('is-doctor-check').checked;
+            let role = 'USER';
+            let extraData = {};
+
+            if (isDoctor) {
+                role = 'DOCTOR';
+                extraData = {
+                    specialty: document.getElementById('doc-specialty').value,
+                    city: document.getElementById('doc-city').value,
+                    clinic: document.getElementById('doc-clinic').value,
+                    price: document.getElementById('doc-price').value,
+                    // Note: File uploads would typically need FormData. 
+                    // For this environment, we might skip actual file upload or standard handling 
+                    // since Auth.register currently expects JSON. 
+                    // We'll pass filenames or placeholder for now.
+                    certificate: document.getElementById('doc-cert').value,
+                    identityId: document.getElementById('doc-id').value
+                };
+            }
+
+            btn.innerText = 'جاري المعالجة...';
+            btn.disabled = true;
+
+            try {
+                // Modified to pass role and extraData
+                const res = await Auth.register(name, phone, password, role, extraData);
+
+                if (res.success) {
+                    pendingUser = res.user;
+                    pendingToken = res.token;
+
+                    // Show OTP Step
+                    const otpRes = await Auth.sendOTP(phone, 'recaptcha-container');
+                    if (otpRes.success) {
+                        showStep('otp-step');
+
+                        // Auto-OTP Feature
+                        if (otpRes.simulated && otpRes.code) {
+                            const otpInput = document.getElementById('otp-input');
+                            setTimeout(() => {
+                                otpInput.value = otpRes.code;
+                                setTimeout(() => {
+                                    document.getElementById('otp-form').dispatchEvent(new Event('submit'));
+                                }, 1000);
+                            }, 800);
+                        }
+                    } else {
+                        showError(otpRes.message);
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }
+                } else {
+                    showError(res.message);
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showError("حدث خطأ غير متوقع");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('otp-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const code = document.getElementById('otp-input').value;
+            const verifyRes = await Auth.verifyOTP(code);
+
+            if (verifyRes.success) {
+                Auth.finalizeLogin(pendingUser, pendingToken);
+                window.location.href = 'dashboard.html';
+            } else {
+                showError(verifyRes.message || 'رمز التأكيد غير صحيح');
+            }
+        });
+
+        function showError(msg) {
+            const err = document.getElementById('error-msg');
+            err.innerText = msg;
+            err.style.display = 'block';
+            setTimeout(() => { err.style.display = 'none'; }, 5000);
+        }
+
+        // Toggle Password Visibility
+        const togglePasswordReg = document.getElementById('togglePasswordReg');
+        const passwordInputReg = document.getElementById('reg-password');
+        if (togglePasswordReg) {
+            togglePasswordReg.addEventListener('click', function () {
+                const type = passwordInputReg.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInputReg.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+    </script>
+</body>
+
+</html>
